@@ -1,5 +1,3 @@
-[![Coordix logo](https://github.com/gabriel-sisjr/Coordix/blob/feature/setup-example-project/assets/logo-300-300.png?raw=true)](https://github.com/gabriel-sisjr/coordix)
-
 # Coordix
 
 A lightweight and straightforward mediator implementation for .NET applications with minimal setup.
