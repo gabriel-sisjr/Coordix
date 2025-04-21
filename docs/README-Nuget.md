@@ -1,5 +1,3 @@
-[![Coordix logo](../assets/logo-300-300.png)](https://github.com/gabriel-sisjr/coordix)
-
 # Coordix
 
 A lightweight and straightforward mediator implementation for .NET applications with minimal setup.
@@ -169,7 +167,7 @@ If this project made your life easier, a star would mean a lot to us!
 
 ## Examples
 
-Check out the [`/examples`](./examples) folder for more projects that illustrate how to use Coordix. - _(WIP)_.
+Check out the [`/examples`](./examples) folder for more projects that illustrate how to use Coordix.
 
 These include:
 
