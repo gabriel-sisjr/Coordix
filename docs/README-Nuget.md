@@ -1,4 +1,4 @@
-[![Coordix logo](../assets/logo-300-300.png)](https://github.com/gabriel-sisjr/coordix)
+[![Coordix logo](https://github.com/gabriel-sisjr/Coordix/blob/feature/setup-example-project/assets/logo-300-300.png?raw=true)](https://github.com/gabriel-sisjr/coordix)
 
 # Coordix
 
@@ -169,7 +169,7 @@ If this project made your life easier, a star would mean a lot to us!
 
 ## Examples
 
-Check out the [`/examples`](./examples) folder for more projects that illustrate how to use Coordix. - _(WIP)_.
+Check out the [`/examples`](./examples) folder for more projects that illustrate how to use Coordix.
 
 These include:
 

@@ -7,28 +7,30 @@
 		<RootNamespace>Coordix</RootNamespace>
 		<PackageId>Coordix</PackageId>
 		<Authors>Gabriel Santana</Authors>
-		<Description>Coordix implementation in .NET, In-process messaging with no dependencies.</Description>
-		<PackageDescription>Coordix implementation in .NET, In-process messaging with no dependencies.</PackageDescription>
+		<Description>A lightweight and straightforward mediator implementation for .NET applications with minimal setup</Description>
+		<PackageDescription>A lightweight and straightforward mediator implementation for .NET applications</PackageDescription>
 		<PackageProjectUrl>https://github.com/gabriel-sisjr/Coordix</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/gabriel-sisjr/Coordix</RepositoryUrl>
 		<RepositoryType>Public</RepositoryType>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<Version>0.0.2</Version>
+		<Version>0.0.3</Version>
 		<Title>Coordix</Title>
 		<PackageReadmeFile>README-Nuget.md</PackageReadmeFile>
 		<PackageTags>Coordix, Mediator, MediatR, ServiceBus</PackageTags>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<PackageIcon>logo-128-128.png</PackageIcon>
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
 	</PropertyGroup>
 	<ItemGroup>
-	  <None Include="..\assets\logo-128-128.png">
-	    <Pack>True</Pack>
-	    <PackagePath>\</PackagePath>
-	  </None>
-	  <None Include="..\docs\README-Nuget.md">
-	    <Pack>True</Pack>
-	    <PackagePath>\</PackagePath>
-	  </None>
+		<None Include="..\assets\logo-128-128.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\docs\README-Nuget.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
 	</ItemGroup>
 
 	<ItemGroup>
