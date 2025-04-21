@@ -13,13 +13,25 @@
 		<RepositoryUrl>https://github.com/gabriel-sisjr/Coordix</RepositoryUrl>
 		<RepositoryType>Public</RepositoryType>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<Version>0.0.1</Version>
+		<Version>0.0.2</Version>
 		<Title>Coordix</Title>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageReadmeFile>README-Nuget.md</PackageReadmeFile>
 		<PackageTags>Coordix, Mediator, MediatR, ServiceBus</PackageTags>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<PackageIcon>logo-128-128.png</PackageIcon>
 	</PropertyGroup>
+	<ItemGroup>
+	  <None Include="..\assets\logo-128-128.png">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
+	  <None Include="..\docs\README-Nuget.md">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
+	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.1.1" />
 	</ItemGroup>
 </Project>
