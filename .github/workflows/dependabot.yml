@@ -13,17 +13,32 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
       - name: Restore dependencies
-        run: dotnet restore
+        run: |
+          dotnet restore
+          yarn install --frozen-lockfile
 
       - name: Build
         run: dotnet build --configuration Release --no-restore
+
+      - name: Check code formatting
+        run: |
+          dotnet format --verify-no-changes --verbosity quiet
+          yarn format:check
 
       - name: Run tests
         run: dotnet test --configuration Release --no-build --verbosity normal
