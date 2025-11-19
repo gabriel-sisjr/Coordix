@@ -1,12 +1,12 @@
-name: Dependabot Auto-merge
+name: Dependabot Validation
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
 
 jobs:
-  auto-merge:
-    name: Auto-merge Dependabot PRs
+  validate:
+    name: Validate Dependabot PRs
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
 
@@ -42,10 +42,3 @@ jobs:
 
       - name: Run tests
         run: dotnet test --configuration Release --no-build --verbosity normal
-
-      - name: Auto-merge
-        uses: fastify/github-action-merge-dependabot@v3
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          target: minor
-          merge-method: squash
