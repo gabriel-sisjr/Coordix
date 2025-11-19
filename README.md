@@ -15,15 +15,39 @@
 
 ## Key Features
 
-- **Built to allow maximum compatibility** - Built with .NET Standard 2.1 briging the max compatibility
+- **Built to allow maximum compatibility** - Built with .NET Standard 2.1 bringing the max compatibility
 - **Zero external dependencies** - Completely standalone with no third-party dependencies
-- **Reduced reflection usage** - Optimized for performance with minimal reflection
+- **High-performance design** - Optimized for performance with cached delegates and minimal reflection overhead
 - **DDD-friendly design** - Support for plain domain events without library dependencies, keeping your domain model clean
 - **Dependency Injection Native** - Created from scratch to be used with Microsoft Dependency Injection
 - **Comprehensive messaging types**:
 
   - `IRequest` / `IRequest<TResponse>` - For state-changing and retrieval operations
   - `INotification` - For notifications and event-driven architecture
+
+## Performance Optimizations
+
+Coordix is designed with performance in mind, implementing several optimization strategies:
+
+### Cached MethodInfo
+- **MethodInfo caching**: The `Handle` method's `MethodInfo` is cached per handler type using a `ConcurrentDictionary`
+- **One-time reflection**: `GetMethod("Handle")` is called only once per handler type, eliminating repeated reflection overhead
+- **Thread-safe**: All caches use `ConcurrentDictionary` for safe concurrent access
+
+### Compiled Delegates
+- **Strongly-typed delegates**: Instead of using `MethodInfo.Invoke`, Coordix uses compiled Expression Trees to create strongly-typed delegates
+- **Direct invocation**: Handlers are invoked through pre-compiled delegates, avoiding reflection overhead on every call
+- **Type-specific caching**: Separate delegate caches for:
+  - Request handlers without return value
+  - Request handlers with return value
+  - Notification handlers
+
+### Performance Benefits
+- **First invocation**: Creates and caches the delegate (one-time overhead)
+- **Subsequent invocations**: Direct delegate calls with near-native performance
+- **Scalability**: Performance improvements become more significant as handler invocation frequency increases
+
+These optimizations ensure that Coordix maintains excellent performance even in high-throughput scenarios while remaining lightweight and easy to use.
 
 ## Getting Started
 
