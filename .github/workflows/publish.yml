@@ -1,14 +1,25 @@
 name: Publish to NuGet
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
+      - develop
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Version to publish (e.g., 1.0.0)'
-        required: true
+      version_suffix:
+        description: 'Version suffix (e.g., rc, beta, alpha). Leave empty for production release.'
+        required: false
         type: string
+        default: ''
+      branch:
+        description: 'Branch to publish from'
+        required: true
+        type: choice
+        options:
+          - develop
+          - main
+        default: develop
 
 jobs:
   publish:
@@ -21,28 +32,85 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      - name: Determine version
-        id: version
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Read version from project file
+        id: read_version
         run: |
-          if [ "${{ github.event_name }}" == "release" ]; then
-            VERSION="${{ github.event.release.tag_name }}"
-            # Remove 'v' prefix if present
-            VERSION=${VERSION#v}
+          VERSION=$(grep '<Version>' src/Coordix/Coordix.csproj | sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p')
+          echo "base_version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Base version: $VERSION"
+
+      - name: Determine package version
+        id: package_version
+        run: |
+          BASE_VERSION="${{ steps.read_version.outputs.base_version }}"
+          SUFFIX="${{ github.event.inputs.version_suffix }}"
+          BRANCH="${{ github.ref_name }}"
+          EVENT_NAME="${{ github.event_name }}"
+          
+          # Push em main = produção automática
+          if [ "$EVENT_NAME" == "push" ] && [ "$BRANCH" == "main" ]; then
+            PACKAGE_VERSION="$BASE_VERSION"
+            echo "Production release (auto): $PACKAGE_VERSION"
+            echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+          # Push em develop = não publica (só build/test)
+          elif [ "$EVENT_NAME" == "push" ] && [ "$BRANCH" == "develop" ]; then
+            echo "Push to develop - skipping publish (only build/test)"
+            echo "should_publish=false" >> $GITHUB_OUTPUT
+            exit 0
+          # Workflow dispatch em develop com sufixo
+          elif [ "$EVENT_NAME" == "workflow_dispatch" ] && [ "$BRANCH" == "develop" ] && [ -n "$SUFFIX" ] && [ "$SUFFIX" != "" ]; then
+            PACKAGE_VERSION="$BASE_VERSION-$SUFFIX"
+            echo "Pre-release with suffix: $PACKAGE_VERSION"
+            echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+          # Workflow dispatch em develop sem sufixo = rc padrão
+          elif [ "$EVENT_NAME" == "workflow_dispatch" ] && [ "$BRANCH" == "develop" ]; then
+            PACKAGE_VERSION="$BASE_VERSION-rc"
+            echo "Pre-release default (rc): $PACKAGE_VERSION"
+            echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+          # Workflow dispatch em main = produção
+          elif [ "$EVENT_NAME" == "workflow_dispatch" ] && [ "$BRANCH" == "main" ]; then
+            if [ -n "$SUFFIX" ] && [ "$SUFFIX" != "" ]; then
+              PACKAGE_VERSION="$BASE_VERSION-$SUFFIX"
+              echo "Production with suffix: $PACKAGE_VERSION"
+            else
+              PACKAGE_VERSION="$BASE_VERSION"
+              echo "Production release: $PACKAGE_VERSION"
+            fi
+            echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+            echo "should_publish=true" >> $GITHUB_OUTPUT
           else
-            VERSION="${{ github.event.inputs.version }}"
+            echo "Unknown event/branch combination"
+            echo "should_publish=false" >> $GITHUB_OUTPUT
+            exit 1
           fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Determined version: $VERSION"
+          
+          echo "Final package version: $PACKAGE_VERSION"
 
       - name: Update version in project file
+        if: steps.package_version.outputs.should_publish == 'true'
         run: |
-          sed -i "s/<Version>.*<\/Version>/<Version>${{ steps.version.outputs.version }}<\/Version>/" src/Coordix.csproj
+          PACKAGE_VERSION="${{ steps.package_version.outputs.package_version }}"
+          sed -i "s|<Version>.*</Version>|<Version>$PACKAGE_VERSION</Version>|" src/Coordix/Coordix.csproj
+          echo "Updated version to: $PACKAGE_VERSION"
 
       - name: Restore dependencies
         run: dotnet restore
@@ -54,7 +122,24 @@ jobs:
         run: dotnet test --configuration Release --no-build --verbosity normal
 
       - name: Pack
-        run: dotnet pack src/Coordix.csproj --configuration Release --no-build --output ./artifacts
+        if: steps.package_version.outputs.should_publish == 'true'
+        run: |
+          dotnet pack src/Coordix/Coordix.csproj --configuration Release --no-build --output ./artifacts
 
       - name: Publish to NuGet
-        run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        if: steps.package_version.outputs.should_publish == 'true'
+        run: |
+          dotnet nuget push ./artifacts/*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+      - name: Upload artifacts
+        if: steps.package_version.outputs.should_publish == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-package
+          path: ./artifacts/*.nupkg
+          retention-days: 30

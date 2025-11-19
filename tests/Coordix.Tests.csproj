@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\Coordix.csproj" />
+    <ProjectReference Include="..\src\Coordix\Coordix.csproj" />
   </ItemGroup>
 
   <ItemGroup>
