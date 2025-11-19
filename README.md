@@ -62,13 +62,13 @@ Coordix is a lightweight, high-performance mediator pattern implementation for .
 
 ### Compared to Other Mediator Libraries
 
-| Feature | Coordix | MediatR | Others |
-|---------|---------|---------|--------|
-| Zero Dependencies | ✅ | ❌ | Varies |
-| .NET Standard 2.1 | ✅ | ✅ | Varies |
-| Performance Optimized | ✅ | ⚠️ | Varies |
-| Automatic Registration | ✅ | ⚠️ | Varies |
-| Lightweight | ✅ | ⚠️ | Varies |
+| Feature                | Coordix | MediatR | Others |
+| ---------------------- | ------- | ------- | ------ |
+| Zero Dependencies      | ✅      | ❌      | Varies |
+| .NET Standard 2.1      | ✅      | ✅      | Varies |
+| Performance Optimized  | ✅      | ⚠️      | Varies |
+| Automatic Registration | ✅      | ⚠️      | Varies |
+| Lightweight            | ✅      | ⚠️      | Varies |
 
 ### Use Cases
 
@@ -234,7 +234,7 @@ public class LogUserCreatedHandler : INotificationHandler<UserCreatedEvent>
 
     public Task Handle(UserCreatedEvent notification, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("User {UserId} created with email {Email}", 
+        _logger.LogInformation("User {UserId} created with email {Email}",
             notification.UserId, notification.Email);
         return Task.CompletedTask;
     }
