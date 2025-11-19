@@ -23,11 +23,11 @@
 		<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
 	</PropertyGroup>
 	<ItemGroup>
-		<None Include="..\assets\logo-128-128.png">
+		<None Include="..\..\assets\logo-128-128.png">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
-		<None Include="..\docs\README-Nuget.md">
+		<None Include="..\..\docs\README-Nuget.md">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>

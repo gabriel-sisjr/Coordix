@@ -1,4 +1,4 @@
-﻿using Coordix.Interfaces;
+using Coordix.Interfaces;
 
 namespace Coordix.Tests.Samples;
 

@@ -1,0 +1,41 @@
+# Build outputs
+**/bin/
+**/obj/
+**/node_modules/
+
+# Package files
+*.nupkg
+*.snupkg
+
+# Logs
+*.log
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# Coverage
+coverage/
+*.coverage
+*.coveragexml
+
+# Generated files
+**/Generated/
+**/*.Designer.cs
+**/*.g.cs
+
+# Solution files
+*.sln
+
+# Project files
+*.csproj
+*.vbproj
+*.fsproj
+
+# Assets
+assets/
+
+# Documentation
+docs/
+
