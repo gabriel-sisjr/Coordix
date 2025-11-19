@@ -62,7 +62,7 @@ jobs:
           SUFFIX="${{ github.event.inputs.version_suffix }}"
           BRANCH="${{ github.ref_name }}"
           EVENT_NAME="${{ github.event_name }}"
-          
+
           # Push em main = produção automática
           if [ "$EVENT_NAME" == "push" ] && [ "$BRANCH" == "main" ]; then
             PACKAGE_VERSION="$BASE_VERSION"
@@ -102,7 +102,7 @@ jobs:
             echo "should_publish=false" >> $GITHUB_OUTPUT
             exit 1
           fi
-          
+
           echo "Final package version: $PACKAGE_VERSION"
 
       - name: Update version in project file

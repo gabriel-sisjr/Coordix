@@ -3,19 +3,21 @@
 A lightweight and straightforward mediator implementation for .NET applications with minimal setup.
 
 [![Coordix NuGet Version](https://img.shields.io/nuget/vpre/Coordix.svg)](https://www.nuget.org/packages/coordix)  
-[![Coordix NuGet Downloads](https://img.shields.io/nuget/dt/Coordix.svg)](https://codecov.io/gh/gabriel-sisjr/coordix)
+[![Coordix NuGet Downloads](https://img.shields.io/nuget/dt/Coordix.svg)](https://www.nuget.org/packages/coordix)
 
 ## Key Features
 
-- **Built to allow maximum compatibility** - Built with .NET Standard 2.1 bringing the max compatibility
-- **Zero external dependencies** - Completely standalone with no third-party dependencies
+- **Built for maximum compatibility** - Built with .NET Standard 2.1 for maximum compatibility across .NET platforms
+- **Zero external dependencies** - Completely standalone with no third-party dependencies (except Microsoft.Extensions.DependencyInjection)
 - **High-performance design** - Optimized for performance with cached delegates and minimal reflection overhead
 - **DDD-friendly design** - Support for plain domain events without library dependencies, keeping your domain model clean
-- **Dependency Injection Native** - Created from scratch to be used with Microsoft Dependency Injection
+- **Dependency Injection Native** - Built from scratch to work seamlessly with Microsoft Dependency Injection
 - **Comprehensive messaging types**:
-
-  - `IRequest` / `IRequest<TResponse>` - For state-changing and retrieval operations
-  - `INotification` - For notifications and event-driven architecture
+  - `IRequest<TResponse>` - For queries and commands that return a value
+  - `IRequest` - For commands that don't return a value
+  - `INotification` - For events and notifications
+- **Automatic handler discovery** - Automatically registers all handlers in your assemblies
+- **Thread-safe** - All operations are thread-safe and optimized for concurrent access
 
 ## Performance Optimizations
 
@@ -35,11 +37,9 @@ Coordix is designed with performance in mind, implementing several optimization 
   - Notification handlers
 
 ### Performance Benefits
-- **First invocation**: Creates and caches the delegate (one-time overhead)
-- **Subsequent invocations**: Direct delegate calls with near-native performance
+- **First invocation**: Creates and caches the delegate (one-time overhead ~1-5ms)
+- **Subsequent invocations**: Direct delegate calls with near-native performance (<0.01ms)
 - **Scalability**: Performance improvements become more significant as handler invocation frequency increases
-
-These optimizations ensure that Coordix maintains excellent performance even in high-throughput scenarios while remaining lightweight and easy to use.
 
 ## Getting Started
 
@@ -51,155 +51,227 @@ You can install the Coordix package via NuGet Package Manager or the .NET CLI:
 dotnet add package Coordix
 ```
 
-### Simple Usage: Request
+### Quick Start
 
-This example demonstrates how to use a `Request` (command/query) in a real-world use case.
-
-#### 1. Define the Request
+#### 1. Register Coordix
 
 ```csharp
-public class YourExampleCommand : IRequest<string>
+using Coordix.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Register Coordix and automatically discover all handlers
+builder.Services.AddCoordix();
+```
+
+#### 2. Define a Request
+
+```csharp
+using Coordix.Interfaces;
+
+public class GetUserQuery : IRequest<UserDto>
 {
-    public Guid GuidId { get; set; }
+    public int UserId { get; set; }
+}
+
+public class UserDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
 }
 ```
 
-#### 2. Implement the Handlers
+#### 3. Implement a Handler
 
 ```csharp
-public class YourExampleHandler : IRequestHandler<YourExampleCommand, string>
+using Coordix.Interfaces;
+
+public class GetUserQueryHandler : IRequestHandler<GetUserQuery, UserDto>
+{
+    private readonly IUserRepository _repository;
+
+    public GetUserQueryHandler(IUserRepository repository)
+    {
+        _repository = repository;
+    }
+
+    public async Task<UserDto> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    {
+        var user = await _repository.GetByIdAsync(request.UserId, cancellationToken);
+        return new UserDto { Id = user.Id, Name = user.Name };
+    }
+}
+```
+
+#### 4. Use the Mediator
+
+```csharp
+public class UsersController : ControllerBase
 {
     private readonly IMediator _mediator;
 
-    public YourExampleHandler(IMediator mediator) => _mediator = mediator;
-
-    public async Task<string> Handle(YourExampleCommand request, CancellationToken cancellationToken)
+    public UsersController(IMediator mediator)
     {
-        // Do all verifications, persistences and etc.
-        // ...
+        _mediator = mediator;
+    }
 
-        return $"The request with ID: '{request.GuidId}' was processed successfully.";
+    [HttpGet("{id}")]
+    public async Task<ActionResult<UserDto>> GetUser(int id)
+    {
+        var user = await _mediator.Send(new GetUserQuery { UserId = id });
+        return Ok(user);
     }
 }
 ```
 
----
+## Examples
 
-### Advanced Usage: Request + Notification
-
-This example demonstrates how to combine a `Request` (command/query) and a `Notification` (event) in a real-world use case.
-
-> #### ✅ Using the previous example.
-
-#### 1. Define the request
+### Simple Request/Response
 
 ```csharp
-public class YourExampleCommand : IRequest<string>
+// Request
+public class GetUserQuery : IRequest<UserDto>
 {
-    public Guid GuidId { get; set; }
+    public int UserId { get; set; }
 }
 
-public class YourExampleEvent : INotification
+// Handler
+public class GetUserQueryHandler : IRequestHandler<GetUserQuery, UserDto>
 {
-    public Guid ExampleId { get; }
-
-    public YourExampleEvent(Guid ExampleId)
+    public async Task<UserDto> Handle(GetUserQuery request, CancellationToken cancellationToken)
     {
-        ExampleId = ExampleId;
+        // Your logic here
+        return new UserDto { Id = request.UserId, Name = "John" };
     }
 }
+
+// Usage
+var user = await _mediator.Send(new GetUserQuery { UserId = 123 });
 ```
 
-#### 2. Implement the Handlers
+### Command (No Response)
 
 ```csharp
-public class YourExampleHandler : IRequestHandler<YourExampleCommand, string>
+// Command
+public class CreateUserCommand : IRequest
 {
-    private readonly IMediator _mediator;
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+}
 
-    public YourExampleHandler(IMediator mediator) => _mediator = mediator;
-
-    public async Task<string> Handle(YourExampleCommand request, CancellationToken cancellationToken)
+// Handler
+public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand>
+{
+    public async Task Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
-        var idRequest = request.GuidId;
-        // Do all verifications, persistences and etc.
-        // ...
-
-        // Publish the Event
-        await _mediator.Publish(new YourExampleEvent(idRequest), cancellationToken);
-
-        return $"The request with ID: '{idRequest}' was processed successfully.";
+        // Your logic here
+        await SaveUserAsync(request);
     }
 }
 
-public class ExampleEmailHandler : INotificationHandler<YourExampleEvent>
-{
-    public Task Handle(YourExampleEvent notification, CancellationToken cancellationToken)
-    {
-        Console.WriteLine($"Sending email to ID: {notification.ExampleId}");
-        return Task.CompletedTask;
-    }
-}
+// Usage
+await _mediator.Send(new CreateUserCommand { Name = "John", Email = "john@example.com" });
 ```
 
-### P.S. After select your approach, you will need to register the Handlers (Dependency Injection)
+### Notifications (Events)
 
-You can register everything manually:
+```csharp
+// Notification
+public class UserCreatedEvent : INotification
+{
+    public int UserId { get; }
+    public string Email { get; }
+
+    public UserCreatedEvent(int userId, string email)
+    {
+        UserId = userId;
+        Email = email;
+    }
+}
+
+// Handler
+public class SendWelcomeEmailHandler : INotificationHandler<UserCreatedEvent>
+{
+    public async Task Handle(UserCreatedEvent notification, CancellationToken cancellationToken)
+    {
+        // Send welcome email
+        await SendEmailAsync(notification.Email, "Welcome!");
+    }
+}
+
+// Usage
+await _mediator.Publish(new UserCreatedEvent(userId, email));
+```
+
+## Registration Options
+
+### Automatic Registration (Recommended)
+
+```csharp
+// Scan all assemblies in the current AppDomain
+services.AddCoordix();
+
+// Scan specific assemblies
+services.AddCoordix(typeof(MyHandler).Assembly);
+
+// Scan by namespace prefix
+services.AddCoordix("MyApp");
+```
+
+### Manual Registration
 
 ```csharp
 services.AddSingleton<IMediator, Mediator>();
-
-services.AddScoped<IRequestHandler<YourExampleCommand, Guid>, YourExampleHandler>(); // or Transient.
-services.AddTransient<INotificationHandler<YourExampleEvent>, ExampleEmailHandler>(); // or Scoped
+services.AddScoped<IRequestHandler<GetUserQuery, UserDto>, GetUserQueryHandler>();
+services.AddTransient<INotificationHandler<UserCreatedEvent>, SendWelcomeEmailHandler>();
 ```
 
-Or with:
+### Compatibility Alias
+
+If you're migrating from MediatR, you can use the `AddMediator` alias:
 
 ```csharp
-services.AddCoordix();
-```
-
-#### _**Note: If you are already a user of `Mediator`, you just will need to replace their lib for our, `Coordix` provides the following register:**_
-
-```csharp
-services.AddMediator();
-```
-
----
-
-### After all steps before, now is time to execute the Flow
-
-```csharp
-public class AppService
-{
-    private readonly IMediator _mediator;
-
-    public AppService(IMediator mediator) => _mediator = mediator;
-
-    public async Task<string> YourExample()
-        => await _mediator.Send(new YourExampleCommand { GuidId = Guid.NewGuid() });
-}
+services.AddMediator(); // Same as AddCoordix()
 ```
 
 ## Documentation
 
-For comprehensive documentation, including detailed explanations, advanced features, and best practices, please visit the [Wiki](#) - _(WIP)_.
+For comprehensive documentation, visit the [GitHub repository](https://github.com/gabriel-sisjr/coordix):
+
+- 📖 [Installation Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/installation.md)
+- 🚀 [Getting Started Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/getting-started.md)
+- 📚 [Usage Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/usage.md)
+- ⚡ [Performance Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/performance.md)
+- 🔧 [API Reference](https://github.com/gabriel-sisjr/coordix/blob/main/docs/api-reference.md)
+- 🎯 [Best Practices](https://github.com/gabriel-sisjr/coordix/blob/main/docs/best-practices.md)
+- 🔄 [Migration Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/migration.md)
+- ❓ [FAQ](https://github.com/gabriel-sisjr/coordix/blob/main/docs/faq.md)
+
+## Examples
+
+Check out the [samples folder](https://github.com/gabriel-sisjr/coordix/tree/main/samples) for complete, runnable examples:
+
+- ✅ [Simple Sample](https://github.com/gabriel-sisjr/coordix/tree/main/samples/SimpleSample) - Basic usage with `Send` and `Publish`
+- ✅ [Advanced Sample](https://github.com/gabriel-sisjr/coordix/tree/main/samples/AdvancedSample) - Complete application with multiple handlers, events, and patterns
+
+## Requirements
+
+- .NET Standard 2.1 or higher
+- .NET Core 2.1+ / .NET 5+ / .NET 6+ / .NET 7+ / .NET 8+
+- Microsoft.Extensions.DependencyInjection (included with ASP.NET Core)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/gabriel-sisjr/coordix/blob/main/LICENSE) file for details.
+
+## About
+
+Coordix was developed by [Gabriel Santana](https://www.linkedin.com/in/gabriel-sisjr/) under the MIT license.
 
 ## Give a Star! ⭐
 
 If this project made your life easier, a star would mean a lot to us!
 
-## Examples
+---
 
-Check out the [`/examples`](./examples) folder for more projects that illustrate how to use Coordix.
-
-These include:
-
-- ✅ Basic and Advanced usage with `Send` and `Publish`
-- ✅ Manual and automatic registration of handlers
-
-Don't hesitate to experiment — run the examples to see the mediator in action.
-
-## About
-
-Coordix was developed by [Gabriel Santana](https://https://www.linkedin.com/in/gabriel-sisjr/) under the MIT license.
+Made with ❤️ by the Coordix community
