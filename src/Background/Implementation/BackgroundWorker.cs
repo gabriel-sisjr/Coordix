@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -86,12 +87,27 @@ namespace Coordix.Background.Implementation
 				if (job.HasResponse && job.ResponseType != null)
 				{
 					// Request with response
-					var sendMethod = typeof(IMediator).GetMethod(nameof(IMediator.Send), new[] { typeof(IRequest<>).MakeGenericType(job.ResponseType), typeof(CancellationToken) });
+					// Get the generic Send<TResponse> method
+					var sendMethods = typeof(IMediator).GetMethods();
+					var sendMethod = sendMethods.FirstOrDefault(m =>
+						m.Name == nameof(IMediator.Send) &&
+						m.IsGenericMethod &&
+						m.GetParameters().Length == 2 &&
+						m.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == typeof(IRequest<>) &&
+						m.GetParameters()[1].ParameterType == typeof(CancellationToken));
+
 					if (sendMethod != null)
 					{
 						var genericMethod = sendMethod.MakeGenericMethod(job.ResponseType);
-						var task = (Task)genericMethod.Invoke(mediator, new object[] { job.Message, cancellationToken });
-						await task;
+						var task = genericMethod.Invoke(mediator, new object[] { job.Message, cancellationToken });
+						if (task is Task taskResult)
+						{
+							await taskResult;
+						}
+					}
+					else
+					{
+						_logger.LogError("IMediator.Send method for IRequest<{ResponseType}> not found.", job.ResponseType.Name);
 					}
 				}
 				else if (job.Message is IRequest request)

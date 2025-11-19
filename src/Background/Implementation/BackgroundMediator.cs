@@ -84,6 +84,7 @@ namespace Coordix.Background.Implementation
 			}
 			catch (InvalidOperationException ex)
 			{
+				// ChannelClosedException inherits from InvalidOperationException
 				_logger.LogError(ex, "Failed to enqueue background job: {MessageType}", job.MessageType.Name);
 				throw;
 			}
