@@ -1,6 +1,6 @@
 {
   "name": "coordix",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "description": "A lightweight and straightforward mediator implementation for .NET applications with minimal setup",
   "private": true,
   "scripts": {
