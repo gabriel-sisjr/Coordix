@@ -6,7 +6,9 @@
   "scripts": {
     "prepare": "husky",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "format:dotnet": "dotnet format",
+    "format:dotnet:check": "dotnet format --verify-no-changes"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.0.0",
