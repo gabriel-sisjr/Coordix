@@ -10,7 +10,7 @@ jobs:
   lint-commits:
     name: Lint Commits
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
 
     steps:
       - name: Checkout code
