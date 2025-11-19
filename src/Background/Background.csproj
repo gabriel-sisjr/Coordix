@@ -29,7 +29,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Coordix\Coordix.csproj">
+		<ProjectReference Include="..\Core\Core.csproj">
 			<!-- When packing, this will be converted to a PackageReference to Coordix -->
 			<PrivateAssets>none</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
