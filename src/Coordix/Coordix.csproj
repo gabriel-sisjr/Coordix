@@ -13,7 +13,7 @@
 		<RepositoryUrl>https://github.com/gabriel-sisjr/Coordix</RepositoryUrl>
 		<RepositoryType>Public</RepositoryType>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<Version>0.0.4</Version>
+		<Version>0.1.0</Version>
 		<Title>Coordix</Title>
 		<PackageReadmeFile>README-Nuget.md</PackageReadmeFile>
 		<PackageTags>Coordix, Mediator, MediatR, ServiceBus</PackageTags>
@@ -27,7 +27,7 @@
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
-		<None Include="..\..\docs\README-Nuget.md">
+		<None Include="..\..\docs\core\README-Nuget.md">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>

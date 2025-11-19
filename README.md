@@ -78,11 +78,33 @@ Coordix is a lightweight, high-performance mediator pattern implementation for .
 - **Microservices**: Communicate between services using messages
 - **Domain-Driven Design**: Implement domain events without framework dependencies
 
+## Packages
+
+Coordix is distributed as separate NuGet packages:
+
+### Core Package
+
+**Coordix** - The core mediator implementation
+
+```bash
+dotnet add package Coordix
+```
+
+### Extension Packages
+
+**Coordix.Background** - Background job processing (fire-and-forget in-process jobs)
+
+```bash
+dotnet add package Coordix.Background
+```
+
+> **Note**: `Coordix.Background` requires `Coordix` to be installed. It will be automatically installed as a dependency.
+
 ## Getting Started
 
 ### Installation
 
-Install Coordix via NuGet Package Manager:
+Install the Coordix core package via NuGet Package Manager:
 
 ```bash
 dotnet add package Coordix
@@ -92,6 +114,12 @@ Or via Package Manager Console:
 
 ```powershell
 Install-Package Coordix
+```
+
+For background job processing, also install:
+
+```bash
+dotnet add package Coordix.Background
 ```
 
 ### Basic Setup
@@ -294,14 +322,22 @@ For detailed performance information, see the [Performance Guide](./docs/perform
 
 Comprehensive documentation is available in the [`docs`](./docs) folder:
 
-- 📖 [Installation Guide](./docs/installation.md) - Detailed installation and configuration instructions
-- 🚀 [Getting Started Guide](./docs/getting-started.md) - Step-by-step tutorial for beginners
-- 📚 [Usage Guide](./docs/usage.md) - Advanced usage patterns and best practices
-- ⚡ [Performance Guide](./docs/performance.md) - Performance optimization tips and benchmarks
-- 🔧 [API Reference](./docs/api-reference.md) - Complete API documentation
-- 🎯 [Best Practices](./docs/best-practices.md) - Recommended patterns and practices
-- 🔄 [Migration Guide](./docs/migration.md) - Migrating from other mediator libraries
-- ❓ [FAQ](./docs/faq.md) - Frequently asked questions
+### Core Documentation (Coordix)
+
+- 📖 [Installation Guide](./docs/core/installation.md) - Detailed installation and configuration instructions
+- 🚀 [Getting Started Guide](./docs/core/getting-started.md) - Step-by-step tutorial for beginners
+- 📚 [Usage Guide](./docs/core/usage.md) - Advanced usage patterns and best practices
+- ⚡ [Performance Guide](./docs/core/performance.md) - Performance optimization tips and benchmarks
+- 🔧 [API Reference](./docs/core/api-reference.md) - Complete API documentation
+- 🎯 [Best Practices](./docs/core/best-practices.md) - Recommended patterns and practices
+- 🔄 [Migration Guide](./docs/core/migration.md) - Migrating from other mediator libraries
+- ❓ [FAQ](./docs/core/faq.md) - Frequently asked questions
+
+### Extension Packages
+
+#### Coordix.Background
+
+- 🔄 [Background Jobs Guide](./docs/background/background-jobs.md) - Complete guide for fire-and-forget background jobs
 
 ## Examples
 
@@ -309,6 +345,7 @@ Check out the [`samples`](./samples) folder for complete, runnable examples:
 
 - ✅ [Simple Sample](./samples/SimpleSample) - Basic usage with `Send` and `Publish`
 - ✅ [Advanced Sample](./samples/AdvancedSample) - Complete application with multiple handlers, events, and patterns
+- ✅ [Background Jobs Sample](./samples/BackgroundJobsSample) - Fire-and-forget background job processing with `Coordix.Background`
 
 Don't hesitate to experiment — run the examples to see Coordix in action!
 
