@@ -7,14 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Coordix.Background package**: New NuGet package for fire-and-forget in-process background job processing
+  - `IBackgroundMediator` interface for enqueueing background jobs
+  - `BackgroundWorker` using `System.Threading.Channels` for asynchronous processing
+  - `AddCoordixBackground()` extension method for dependency injection setup
+  - Comprehensive test coverage (95.7% overall, 100% for BackgroundMediator)
+  - Complete documentation in `docs/background/` folder
+  - Functional sample project (`BackgroundJobsSample`) demonstrating usage
+- Project structure reorganization:
+  - `src/Core/` and `src/Background/` folders (maintains original namespaces)
+  - `tests/CoreTests/` and `tests/BackgroundTests/` folders
+  - Documentation organized by project: `docs/core/` and `docs/background/`
+- Comprehensive test suite for Coordix.Background:
+  - 33 tests covering all scenarios including edge cases and error handling
+  - Tests for null validation, exception handling, cancellation tokens
+  - Tests for service registration and dependency injection
+  - Background job processing with requests, responses, and notifications
+
 ### Changed
 
+- Repository structure reorganized to `src/Core/` and `src/Background/` (from `src/Coordix/` and `src/Coordix.Background/`)
+- Test structure reorganized to `tests/CoreTests/` and `tests/BackgroundTests/`
+- Solution file (`Coordix.sln`) now only contains `src/` and `tests/` projects (samples removed, can be opened manually)
+- Documentation structure reorganized to follow pattern: `docs/project/documentation`
 - Remove auto-merge from Dependabot workflow to require manual approval for all dependency updates
 - Skip commitlint validation for Dependabot PRs to prevent workflow failures
 
 ### Fixed
 
 - Group Dependabot updates into single PR instead of multiple PRs per dependency
+- Reflection-based method invocation in `BackgroundWorker` for processing requests with responses
+- Code coverage improved from ~63% to 95.7% for Coordix.Background package
 
 ## [0.1.0] - 2025-11-15
 
