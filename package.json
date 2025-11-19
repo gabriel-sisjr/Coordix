@@ -11,7 +11,7 @@
     "format:dotnet:check": "dotnet format --verify-no-changes"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.0.0",
+    "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^19.0.0",
     "husky": "^9.0.0",
     "prettier": "^3.2.0"
