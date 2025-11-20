@@ -196,7 +196,7 @@ await _mediator.Publish(new UserCreatedEvent(userId, email));
 ### Automatic Registration
 
 ```csharp
-// Scans all assemblies in the current AppDomain
+// Scans all assemblies in the current AppDomain (uses Reflection mode by default)
 services.AddCoordix();
 
 // Scan specific assemblies
@@ -204,18 +204,31 @@ services.AddCoordix(typeof(MyHandler).Assembly);
 
 // Scan by namespace prefix
 services.AddCoordix("MyApp");
+
+// Configure handler resolution mode
+services.AddCoordix(options =>
+{
+    options.HandlerResolutionMode = HandlerResolutionMode.Reflection; // Default
+    // options.HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred; // Requires Coordix.CodeGen package
+});
 ```
 
 ### Manual Registration
 
 ```csharp
-services.AddSingleton<IMediator, Mediator>();
+// Register Coordix with options
+services.AddCoordix(options =>
+{
+    options.HandlerResolutionMode = HandlerResolutionMode.Reflection;
+});
 
 // Register individual handlers
 services.AddScoped<IRequestHandler<GetUserQuery, UserDto>, GetUserQueryHandler>();
 services.AddTransient<IRequestHandler<CreateUserCommand>, CreateUserCommandHandler>();
 services.AddScoped<INotificationHandler<UserCreatedEvent>, SendWelcomeEmailHandler>();
 ```
+
+> **Note**: When registering manually, you still need to call `AddCoordix()` to register the `IMediator` and `IHandlerExecutor` (registry). The handler registration is separate.
 
 ### Custom Service Lifetime
 
@@ -462,6 +475,29 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand>
 }
 ```
 
+## Configuration Options
+
+### Handler Resolution Mode
+
+Coordix supports different modes for handler resolution and execution:
+
+```csharp
+services.AddCoordix(options =>
+{
+    // Reflection mode (default) - uses reflection with cached delegates
+    options.HandlerResolutionMode = HandlerResolutionMode.Reflection;
+    
+    // CodeGen mode - requires Coordix.CodeGen package
+    // options.HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred;
+});
+```
+
+**Available Modes:**
+- `Reflection` (default): Uses reflection-based handler resolution with cached delegates for optimal performance
+- `CodeGenPreferred`: Uses code generation for handler resolution (requires `Coordix.CodeGen` package)
+
+> **Note**: `CodeGenPreferred` mode requires the `Coordix.CodeGen` package to be installed. If selected without the package, an `InvalidOperationException` will be thrown with a clear error message.
+
 ## Background Jobs with Coordix.Background
 
 `Coordix.Background` is a separate NuGet package that extends Coordix with fire-and-forget background job processing.
@@ -537,9 +573,12 @@ Use `IBackgroundMediator` for operations that:
 ### Important Notes
 
 - Background jobs use the **same handlers** registered with `AddCoordix()`
+- Background jobs use the **same handler execution registry** (`IHandlerExecutor`) as the core mediator
+- Each job is processed in its **own service scope** for proper lifetime management
 - Jobs are processed **outside the original request context**
 - Exceptions in one job **don't stop processing** of other jobs
 - Jobs are **in-process only** (lost on application restart)
+- Background jobs are **fire-and-forget** - responses from handlers are not available to the caller
 
 For complete documentation, see the [Background Jobs Guide](../background/background-jobs.md).
 

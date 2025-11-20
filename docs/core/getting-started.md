@@ -35,8 +35,14 @@ using Coordix.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add Coordix
+// Add Coordix with default settings (Reflection mode)
 builder.Services.AddCoordix();
+
+// Or configure options explicitly:
+// builder.Services.AddCoordix(options =>
+// {
+//     options.HandlerResolutionMode = HandlerResolutionMode.Reflection;
+// });
 
 // Add services to the container
 builder.Services.AddControllers();

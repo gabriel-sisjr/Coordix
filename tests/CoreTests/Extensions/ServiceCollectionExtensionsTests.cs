@@ -1,4 +1,7 @@
+using System;
+using System.Linq;
 using System.Reflection;
+using Coordix;
 using Coordix.Extensions;
 using Coordix.Implementation;
 using Coordix.Interfaces;
@@ -96,5 +99,87 @@ public sealed class ServiceCollectionExtensionsTests
 		{
 			Assert.IsType<ArgumentException>(tie.InnerException);
 		}
+	}
+
+	[Fact]
+	public void AddCoordix_WithConfiguration_AppliesOptions()
+	{
+		var services = new ServiceCollection();
+		services.AddCoordix(options =>
+		{
+			options.HandlerResolutionMode = HandlerResolutionMode.Reflection;
+		});
+
+		var provider = services.BuildServiceProvider();
+		var options = provider.GetService<CoordixOptions>();
+		var mediator = provider.GetService<IMediator>();
+
+		Assert.NotNull(options);
+		Assert.Equal(HandlerResolutionMode.Reflection, options.HandlerResolutionMode);
+		Assert.NotNull(mediator);
+	}
+
+	[Fact]
+	public void AddCoordix_WithConfigurationAndAssembly_AppliesOptionsAndScansAssembly()
+	{
+		var services = new ServiceCollection();
+		services.AddCoordix(
+			options => options.HandlerResolutionMode = HandlerResolutionMode.Reflection,
+			typeof(PingRequestHandler).Assembly);
+
+		var provider = services.BuildServiceProvider();
+		var options = provider.GetService<CoordixOptions>();
+		var handler = provider.GetService<IRequestHandler<PingRequest, PongResponse>>();
+
+		Assert.NotNull(options);
+		Assert.Equal(HandlerResolutionMode.Reflection, options.HandlerResolutionMode);
+		Assert.NotNull(handler);
+	}
+
+	[Fact]
+	public void AddCoordix_WithCodeGenPreferredMode_ThrowsInvalidOperationException()
+	{
+		var services = new ServiceCollection();
+		var exception = Assert.Throws<InvalidOperationException>(() =>
+		{
+			services.AddCoordix(options =>
+			{
+				options.HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred;
+			});
+		});
+
+		Assert.Contains("Coordix.CodeGen", exception.Message);
+		Assert.Contains("CodeGenPreferred", exception.Message);
+	}
+
+	[Fact]
+	public void AddCoordix_WithNullOptions_ThrowsArgumentNullException()
+	{
+		var services = new ServiceCollection();
+		var method = typeof(ServiceCollectionExtensions).GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
+			.FirstOrDefault(m => m.Name == "AddCoordix" &&
+													 m.GetParameters().Length == 3 &&
+													 m.GetParameters()[1].ParameterType == typeof(CoordixOptions));
+
+		Assert.NotNull(method);
+		var exception = Assert.Throws<TargetInvocationException>(() =>
+		{
+			method.Invoke(null, new object[] { services, null!, Array.Empty<object>() });
+		});
+
+		Assert.IsType<ArgumentNullException>(exception.InnerException);
+	}
+
+
+	[Fact]
+	public void AddMediator_WithArgs_RegistersHandlers()
+	{
+		var services = new ServiceCollection();
+		services.AddMediator(typeof(PingRequestHandler).Assembly);
+
+		var provider = services.BuildServiceProvider();
+		var handler = provider.GetService<IRequestHandler<PingRequest, PongResponse>>();
+
+		Assert.NotNull(handler);
 	}
 }

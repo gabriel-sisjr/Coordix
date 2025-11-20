@@ -28,9 +28,10 @@ public class BackgroundWorkerTests
 		services.AddScoped<IRequestHandler<TestRequest>, TestRequestHandler>(sp =>
 			new TestRequestHandler(() => processed = true));
 		var serviceProvider = services.BuildServiceProvider();
+		var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
 
 		var logger = new Mock<ILogger<BackgroundWorker>>().Object;
-		var worker = new BackgroundWorker(channel.Reader, serviceProvider, logger);
+		var worker = new BackgroundWorker(channel.Reader, serviceScopeFactory, logger);
 
 		// Enqueue a job
 		var job = new BackgroundJob
@@ -64,9 +65,10 @@ public class BackgroundWorkerTests
 		services.AddLogging();
 		services.AddCoordix();
 		var serviceProvider = services.BuildServiceProvider();
+		var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
 
 		var logger = new Mock<ILogger<BackgroundWorker>>().Object;
-		var worker = new BackgroundWorker(channel.Reader, serviceProvider, logger);
+		var worker = new BackgroundWorker(channel.Reader, serviceScopeFactory, logger);
 
 		// Act
 		var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
@@ -97,9 +99,10 @@ public class BackgroundWorkerTests
 		services.AddScoped<IRequestHandler<TestRequest2>, TestRequest2Handler>(sp =>
 			new TestRequest2Handler(() => secondProcessed = true));
 		var serviceProvider = services.BuildServiceProvider();
+		var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
 
 		var logger = new Mock<ILogger<BackgroundWorker>>().Object;
-		var worker = new BackgroundWorker(channel.Reader, serviceProvider, logger);
+		var worker = new BackgroundWorker(channel.Reader, serviceScopeFactory, logger);
 
 		// Enqueue jobs
 		await channel.Writer.WriteAsync(new BackgroundJob
@@ -131,17 +134,18 @@ public class BackgroundWorkerTests
 	}
 
 	[Fact]
-	public async Task ProcessJobAsync_When_IMediator_Not_Found_Should_Log_Error_And_Return()
+	public async Task ProcessJobAsync_When_IHandlerExecutor_Not_Found_Should_Log_Error_And_Return()
 	{
 		// Arrange
 		var channel = Channel.CreateUnbounded<BackgroundJob>();
 		var services = new ServiceCollection();
 		services.AddLogging();
-		// Note: Not adding Coordix, so IMediator won't be available
+		// Note: Not adding Coordix, so IHandlerExecutor won't be available
 		var serviceProvider = services.BuildServiceProvider();
+		var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
 
 		var loggerMock = new Mock<ILogger<BackgroundWorker>>();
-		var worker = new BackgroundWorker(channel.Reader, serviceProvider, loggerMock.Object);
+		var worker = new BackgroundWorker(channel.Reader, serviceScopeFactory, loggerMock.Object);
 
 		// Enqueue a job
 		await channel.Writer.WriteAsync(new BackgroundJob
@@ -163,7 +167,7 @@ public class BackgroundWorkerTests
 			x => x.Log(
 				LogLevel.Error,
 				It.IsAny<EventId>(),
-				It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("IMediator not found")),
+				It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("IHandlerExecutor not found")),
 				It.IsAny<Exception>(),
 				It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
 			Times.AtLeastOnce);
@@ -184,9 +188,10 @@ public class BackgroundWorkerTests
 		services.AddScoped<IRequestHandler<TestRequestWithResponse, string>, TestRequestWithResponseHandler>(sp =>
 			new TestRequestWithResponseHandler(() => processed = true));
 		var serviceProvider = services.BuildServiceProvider();
+		var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
 
 		var logger = new Mock<ILogger<BackgroundWorker>>().Object;
-		var worker = new BackgroundWorker(channel.Reader, serviceProvider, logger);
+		var worker = new BackgroundWorker(channel.Reader, serviceScopeFactory, logger);
 
 		// Enqueue a job with response
 		await channel.Writer.WriteAsync(new BackgroundJob
@@ -223,9 +228,10 @@ public class BackgroundWorkerTests
 		services.AddScoped<INotificationHandler<TestNotification>, TestNotificationHandler>(sp =>
 			new TestNotificationHandler(() => processed = true));
 		var serviceProvider = services.BuildServiceProvider();
+		var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
 
 		var logger = new Mock<ILogger<BackgroundWorker>>().Object;
-		var worker = new BackgroundWorker(channel.Reader, serviceProvider, logger);
+		var worker = new BackgroundWorker(channel.Reader, serviceScopeFactory, logger);
 
 		// Enqueue a notification
 		await channel.Writer.WriteAsync(new BackgroundJob
@@ -260,7 +266,8 @@ public class BackgroundWorkerTests
 		var serviceProvider = services.BuildServiceProvider();
 
 		var loggerMock = new Mock<ILogger<BackgroundWorker>>();
-		var worker = new BackgroundWorker(channel.Reader, serviceProvider, loggerMock.Object);
+		var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+		var worker = new BackgroundWorker(channel.Reader, serviceScopeFactory, loggerMock.Object);
 
 		// Act
 		var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
@@ -281,14 +288,15 @@ public class BackgroundWorkerTests
 		// Arrange
 		var services = new ServiceCollection();
 		var serviceProvider = services.BuildServiceProvider();
+		var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
 		var logger = new Mock<ILogger<BackgroundWorker>>().Object;
 
 		// Act & Assert
-		Assert.Throws<ArgumentNullException>(() => new BackgroundWorker(null!, serviceProvider, logger));
+		Assert.Throws<ArgumentNullException>(() => new BackgroundWorker(null!, serviceScopeFactory, logger));
 	}
 
 	[Fact]
-	public void BackgroundWorker_Constructor_With_Null_ServiceProvider_Should_Throw_ArgumentNullException()
+	public void BackgroundWorker_Constructor_With_Null_ServiceScopeFactory_Should_Throw_ArgumentNullException()
 	{
 		// Arrange
 		var channel = Channel.CreateUnbounded<BackgroundJob>();
@@ -305,9 +313,10 @@ public class BackgroundWorkerTests
 		var channel = Channel.CreateUnbounded<BackgroundJob>();
 		var services = new ServiceCollection();
 		var serviceProvider = services.BuildServiceProvider();
+		var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
 
 		// Act & Assert
-		Assert.Throws<ArgumentNullException>(() => new BackgroundWorker(channel.Reader, serviceProvider, null!));
+		Assert.Throws<ArgumentNullException>(() => new BackgroundWorker(channel.Reader, serviceScopeFactory, null!));
 	}
 
 	[Fact]
@@ -321,7 +330,8 @@ public class BackgroundWorkerTests
 		var serviceProvider = services.BuildServiceProvider();
 
 		var loggerMock = new Mock<ILogger<BackgroundWorker>>();
-		var worker = new BackgroundWorker(channel.Reader, serviceProvider, loggerMock.Object);
+		var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+		var worker = new BackgroundWorker(channel.Reader, serviceScopeFactory, loggerMock.Object);
 
 		// Create a notification job
 		var job = new BackgroundJob
@@ -344,8 +354,8 @@ public class BackgroundWorkerTests
 		cts.Cancel();
 		await worker.StopAsync(cts.Token);
 
-		// Note: Testing the else branch for publishMethod being null is difficult without
-		// breaking the IMediator interface, which would require more complex mocking
+		// Note: Testing the else branch for method being null is difficult without
+		// breaking the IHandlerExecutor interface, which would require more complex mocking
 	}
 
 	[Fact]
@@ -366,7 +376,8 @@ public class BackgroundWorkerTests
 			.Setup(x => x.WaitToReadAsync(It.IsAny<CancellationToken>()))
 			.ThrowsAsync(new InvalidOperationException("Fatal error"));
 
-		var worker = new BackgroundWorker(channelReaderMock.Object, serviceProvider, loggerMock.Object);
+		var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+		var worker = new BackgroundWorker(channelReaderMock.Object, serviceScopeFactory, loggerMock.Object);
 
 		// Act & Assert
 		var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
@@ -384,5 +395,50 @@ public class BackgroundWorkerTests
 			Times.Once);
 	}
 
-}
+	[Fact]
+	public async Task ProcessJobAsync_With_InvalidMessageType_Should_Log_Warning()
+	{
+		// Arrange
+		var channel = Channel.CreateUnbounded<BackgroundJob>();
+		var services = new ServiceCollection();
+		services.AddLogging();
+		services.AddCoordix();
+		var serviceProvider = services.BuildServiceProvider();
 
+		var loggerMock = new Mock<ILogger<BackgroundWorker>>();
+		var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+		var worker = new BackgroundWorker(channel.Reader, serviceScopeFactory, loggerMock.Object);
+
+		// Create a job with a message that is neither IRequest nor INotification
+		var invalidMessage = new object(); // Not IRequest or INotification
+		var job = new BackgroundJob
+		{
+			Message = invalidMessage,
+			MessageType = typeof(object),
+			HasResponse = false,
+			ResponseType = null
+		};
+
+		// Act
+		await channel.Writer.WriteAsync(job);
+		var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
+		var task = worker.StartAsync(cts.Token);
+
+		// Wait a bit for processing
+		await Task.Delay(100);
+
+		// Assert - verify warning was logged
+		loggerMock.Verify(
+			x => x.Log(
+				LogLevel.Warning,
+				It.IsAny<EventId>(),
+				It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("neither IRequest nor INotification")),
+				It.IsAny<Exception>(),
+				It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+			Times.AtLeastOnce);
+
+		cts.Cancel();
+		await worker.StopAsync(cts.Token);
+	}
+
+}
