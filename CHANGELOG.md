@@ -7,39 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-11-20
+
 ### Added
 
-- **Coordix.Background package**: New NuGet package for fire-and-forget in-process background job processing
-  - `IBackgroundMediator` interface for enqueueing background jobs
-  - `BackgroundWorker` using `System.Threading.Channels` for asynchronous processing
-  - `AddCoordixBackground()` extension method for dependency injection setup
-  - Comprehensive test coverage (95.7% overall, 100% for BackgroundMediator)
-  - Complete documentation in `docs/background/` folder
-  - Functional sample project (`BackgroundJobsSample`) demonstrating usage
-- Project structure reorganization:
-  - `src/Core/` and `src/Background/` folders (maintains original namespaces)
-  - `tests/CoreTests/` and `tests/BackgroundTests/` folders
-  - Documentation organized by project: `docs/core/` and `docs/background/`
-- Comprehensive test suite for Coordix.Background:
-  - 33 tests covering all scenarios including edge cases and error handling
-  - Tests for null validation, exception handling, cancellation tokens
-  - Tests for service registration and dependency injection
-  - Background job processing with requests, responses, and notifications
+- **Handler Execution Registry (`IHandlerExecutor`)**: Centralized handler execution abstraction that eliminates scattered reflection throughout the codebase
+  - `IHandlerExecutor` interface for handler lookup, caching, and invocation
+  - `HandlerExecutor` implementation with reflection-based execution and performance optimizations
+  - All handler execution logic now centralized in a single place
+- **Configuration Options (`CoordixOptions`)**: New configuration class for customizing Coordix behavior
+  - `HandlerResolutionMode` enum with `Reflection` (default) and `CodeGenPreferred` modes
+  - `AddCoordix()` now accepts optional `Action<CoordixOptions>` for configuration
+  - Support for mode-dependent registry registration (prepares for future code generation support)
+- **Enhanced Background Processing**: Improved background job processing architecture
+  - `BackgroundWorker` now uses `IHandlerExecutor` instead of direct `IMediator` reflection
+  - Each background job processed in its own service scope for proper lifetime management
+  - Reduced reflection overhead in background processing
+- **Extended API**: New overloads for `AddCoordix()` method
+  - `AddCoordix(IServiceCollection)` - default configuration
+  - `AddCoordix(IServiceCollection, Action<CoordixOptions>)` - with configuration
+  - `AddCoordix(IServiceCollection, params object[])` - with assembly scanning (backward compatible)
+  - `AddCoordix(IServiceCollection, Action<CoordixOptions>, params object[])` - full configuration
 
 ### Changed
 
-- Repository structure reorganized to `src/Core/` and `src/Background/` (from `src/Coordix/` and `src/Coordix.Background/`)
-- Test structure reorganized to `tests/CoreTests/` and `tests/BackgroundTests/`
-- Solution file (`Coordix.sln`) now only contains `src/` and `tests/` projects (samples removed, can be opened manually)
-- Documentation structure reorganized to follow pattern: `docs/project/documentation`
-- Remove auto-merge from Dependabot workflow to require manual approval for all dependency updates
-- Skip commitlint validation for Dependabot PRs to prevent workflow failures
+- **Architecture Refactoring**: `Mediator` now delegates handler execution to `IHandlerExecutor`
+  - `Mediator` is simplified to only discover request/notification types
+  - All reflection, caching, and invocation logic moved to `HandlerExecutor`
+  - Better separation of concerns and extensibility
+- **Background Worker Improvements**: 
+  - Replaced heavy reflection on `IMediator` with `IHandlerExecutor` usage
+  - Improved scope management: creates `IServiceScope` per job instead of using root scope
+  - Better error messages and logging
+- **Service Registration**: Updated registration order and dependencies
+  - `IHandlerExecutor` registered as singleton before `IMediator`
+  - `CoordixOptions` registered as singleton for dependency injection
+  - Mode-dependent registry registration (Reflection vs CodeGenPreferred)
 
 ### Fixed
 
-- Group Dependabot updates into single PR instead of multiple PRs per dependency
-- Reflection-based method invocation in `BackgroundWorker` for processing requests with responses
-- Code coverage improved from ~63% to 95.7% for Coordix.Background package
+- Background jobs now properly handle scoped services with per-job service scopes
+- Eliminated scattered reflection throughout the codebase
+- Improved thread safety with centralized caching
+
+### Documentation
+
+- Updated all documentation to reflect new architecture with `IHandlerExecutor`
+- Added documentation for `CoordixOptions` and `HandlerResolutionMode`
+- Updated API reference with new interfaces and configuration options
+- Enhanced background jobs documentation with architecture details
+- Updated FAQ with questions about handler resolution modes
 
 ## [0.1.0] - 2025-11-15
 
@@ -107,7 +124,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Logo and README documentation
 - MIT License
 
-[Unreleased]: https://github.com/gabriel-sisjr/Coordix/compare/v0.1.0...develop
+[Unreleased]: https://github.com/gabriel-sisjr/Coordix/compare/v0.2.0...develop
+[0.2.0]: https://github.com/gabriel-sisjr/Coordix/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/gabriel-sisjr/Coordix/compare/v0.0.4...v0.1.0
 [0.0.4]: https://github.com/gabriel-sisjr/Coordix/compare/v0.0.1...v0.0.4
 [0.0.1]: https://github.com/gabriel-sisjr/Coordix/releases/tag/v0.0.1

@@ -177,12 +177,15 @@ System.InvalidOperationException: Email service unavailable
                           ┌──────────────────────┐
                           │  BackgroundWorker    │
                           │  (Hosted Service)    │
+                          │  (Creates scope     │
+                          │   per job)          │
                           └──────────┬───────────┘
                                     │
                                     ▼
                           ┌──────────────────────┐
-                          │  IMediator           │
-                          │  (Coordix Core)      │
+                          │  IHandlerExecutor    │
+                          │  (Registry)         │
+                          │  (Same as Core)     │
                           └──────────┬───────────┘
                                     │
                                     ▼
@@ -191,6 +194,12 @@ System.InvalidOperationException: Email service unavailable
                           │  (Your Code)         │
                           └──────────────────────┘
 ```
+
+**Key Points:**
+- Background jobs use the same `IHandlerExecutor` (registry) as the core mediator
+- Each job is processed in its own service scope for proper lifetime management
+- The registry handles all handler lookup, caching, and invocation
+- No reflection is performed in `BackgroundWorker` - it delegates to the registry
 
 ## Best Practices
 
@@ -242,13 +251,16 @@ public class SendEmailHandler : IRequestHandler<SendEmailRequest>
 
 ### 4. Use Scoped Services Carefully
 
-Background jobs run outside the original request scope. If your handlers need scoped services, ensure they're registered correctly:
+Background jobs run outside the original request scope. Each job is processed in its own service scope, which ensures proper lifetime management for scoped services:
 
 ```csharp
 // Handlers are resolved from a new scope for each job
 services.AddScoped<IRequestHandler<MyRequest>, MyHandler>();
 services.AddScoped<IMyService, MyService>(); // Available in handler
+services.AddScoped<DbContext, MyDbContext>(); // Properly scoped per job
 ```
+
+The `BackgroundWorker` creates a new `IServiceScope` for each job, resolves the `IHandlerExecutor` from that scope, and disposes the scope when the job completes. This ensures that scoped services (like `DbContext`) work correctly in background jobs.
 
 ## Limitations
 

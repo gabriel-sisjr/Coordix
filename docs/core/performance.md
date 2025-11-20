@@ -4,9 +4,11 @@ Coordix is designed with performance in mind. This guide explains the performanc
 
 ## Performance Optimizations
 
+Coordix uses a centralized handler execution registry (`IHandlerExecutor`) that implements several performance optimizations:
+
 ### 1. Cached MethodInfo
 
-Coordix caches the `MethodInfo` for the `Handle` method of each handler type using a `ConcurrentDictionary`. This means reflection is performed only once per handler type, not on every invocation.
+The handler executor caches the `MethodInfo` for the `Handle` method of each handler type using a `ConcurrentDictionary`. This means reflection is performed only once per handler type, not on every invocation.
 
 ```csharp
 // First call: Reflection is performed and cached
@@ -18,7 +20,7 @@ await mediator.Send(new MyRequest()); // Fast!
 
 ### 2. Compiled Delegates
 
-Instead of using `MethodInfo.Invoke` (which is slow), Coordix uses Expression Trees to create strongly-typed delegates. These delegates are compiled once and cached, providing near-native performance.
+Instead of using `MethodInfo.Invoke` (which is slow), the handler executor uses Expression Trees to create strongly-typed delegates. These delegates are compiled once and cached, providing near-native performance.
 
 ```csharp
 // First call: Creates and compiles delegate
@@ -31,6 +33,10 @@ await mediator.Send(new MyRequest());
 ### 3. Thread-Safe Caching
 
 All caches use `ConcurrentDictionary` for safe concurrent access, ensuring thread safety without performance penalties.
+
+### 4. Centralized Execution
+
+All handler execution logic is centralized in `IHandlerExecutor` (the registry), eliminating scattered reflection throughout the codebase. This design also allows for future optimizations like code generation without changing the core architecture.
 
 ## Performance Characteristics
 

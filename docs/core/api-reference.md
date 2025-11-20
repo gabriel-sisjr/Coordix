@@ -5,8 +5,9 @@ Complete API documentation for Coordix.
 ## Namespaces
 
 - `Coordix.Interfaces` - Core interfaces
-- `Coordix.Implementation` - Mediator implementation
+- `Coordix.Implementation` - Mediator and handler executor implementations
 - `Coordix.Extensions` - Extension methods for dependency injection
+- `Coordix` - Configuration options and enums
 
 ## Core Interfaces
 
@@ -198,16 +199,38 @@ public class UserCreatedEventHandler : INotificationHandler<UserCreatedEvent>
 }
 ```
 
+### IHandlerExecutor
+
+Centralized handler execution abstraction that handles handler lookup, caching, and invocation. This interface ensures that all handler execution logic is centralized in a single place, eliminating scattered reflection throughout the codebase.
+
+```csharp
+public interface IHandlerExecutor
+{
+    Task<TResponse> ExecuteRequestHandler<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
+    Task ExecuteRequestHandler(IRequest request, CancellationToken cancellationToken = default);
+    Task ExecuteNotificationHandler<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
+        where TNotification : INotification;
+}
+```
+
+**Purpose:**
+- Centralizes all handler execution logic
+- Provides a single point for handler lookup, caching, and invocation
+- Allows different implementations (reflection-based, code-generated, etc.)
+- Used by both `IMediator` and background job processing
+
+**Note:** This interface is typically not used directly by application code. It's used internally by `IMediator` and `BackgroundWorker`.
+
 ## Implementation
 
 ### Mediator
 
-The default implementation of `IMediator`.
+The default implementation of `IMediator`. This implementation delegates handler execution to `IHandlerExecutor` (the registry), which centralizes all reflection and caching logic.
 
 ```csharp
 public class Mediator : IMediator
 {
-    public Mediator(IServiceProvider provider);
+    public Mediator(IHandlerExecutor handlerExecutor);
     
     public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
     public Task Send(IRequest request, CancellationToken cancellationToken = default);
@@ -217,7 +240,34 @@ public class Mediator : IMediator
 ```
 
 **Constructor:**
-- `provider`: The service provider used to resolve handler instances
+- `handlerExecutor`: The handler executor (registry) used to execute handlers
+
+**Architecture:**
+- `Mediator` discovers the request/notification type and delegates execution to `IHandlerExecutor`
+- All handler resolution, caching, and invocation logic is centralized in `IHandlerExecutor`
+- This design eliminates scattered reflection and allows different execution strategies (reflection, code generation, etc.)
+
+### HandlerExecutor
+
+The default reflection-based implementation of `IHandlerExecutor`. This class centralizes all handler execution logic including reflection, caching, and invocation.
+
+```csharp
+public class HandlerExecutor : IHandlerExecutor
+{
+    public HandlerExecutor(IServiceProvider provider);
+    
+    public Task<TResponse> ExecuteRequestHandler<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
+    public Task ExecuteRequestHandler(IRequest request, CancellationToken cancellationToken = default);
+    public Task ExecuteNotificationHandler<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
+        where TNotification : INotification;
+}
+```
+
+**Performance Optimizations:**
+- Caches `MethodInfo` objects to avoid repeated reflection
+- Uses compiled delegates (Expression Trees) for near-native invocation performance
+- Thread-safe caching using `ConcurrentDictionary`
+- All reflection is performed only once per handler type
 
 ## Extension Methods
 
@@ -225,9 +275,22 @@ public class Mediator : IMediator
 
 Extension methods for registering Coordix services.
 
+#### AddCoordix(IServiceCollection)
+
+Registers Coordix with default settings (Reflection mode).
+
+```csharp
+public static IServiceCollection AddCoordix(this IServiceCollection services);
+```
+
+**Example:**
+```csharp
+services.AddCoordix();
+```
+
 #### AddCoordix(IServiceCollection, params object[])
 
-Registers the core Mediator implementation and scans assemblies for handler implementations.
+Registers Coordix and scans assemblies for handler implementations.
 
 ```csharp
 public static IServiceCollection AddCoordix(this IServiceCollection services, params object[] args);
@@ -254,18 +317,100 @@ services.AddCoordix(typeof(MyHandler).Assembly);
 services.AddCoordix("MyApp");
 ```
 
-#### AddMediator(IServiceCollection, params object[])
+#### AddCoordix(IServiceCollection, Action<CoordixOptions>)
 
-Alias for `AddCoordix`. Provided for compatibility with other mediator libraries.
+Registers Coordix with configuration options.
 
 ```csharp
-public static IServiceCollection AddMediator(this IServiceCollection services, params object[] args);
+public static IServiceCollection AddCoordix(
+    this IServiceCollection services,
+    Action<CoordixOptions>? configureOptions);
+```
+
+**Parameters:**
+- `services`: The service collection to add services to
+- `configureOptions`: Optional action to configure `CoordixOptions`
+
+**Returns:** The same service collection instance for chaining
+
+**Example:**
+```csharp
+services.AddCoordix(options =>
+{
+    options.HandlerResolutionMode = HandlerResolutionMode.Reflection;
+});
+```
+
+#### AddCoordix(IServiceCollection, Action<CoordixOptions>, params object[])
+
+Registers Coordix with configuration options and assembly scanning parameters.
+
+```csharp
+public static IServiceCollection AddCoordix(
+    this IServiceCollection services,
+    Action<CoordixOptions>? configureOptions,
+    params object[] args);
+```
+
+**Example:**
+```csharp
+services.AddCoordix(
+    options => options.HandlerResolutionMode = HandlerResolutionMode.Reflection,
+    typeof(MyHandler).Assembly);
+```
+
+#### AddMediator(IServiceCollection)
+
+Alias for `AddCoordix()`. Provided for compatibility with other mediator libraries.
+
+```csharp
+public static IServiceCollection AddMediator(this IServiceCollection services);
 ```
 
 **Example:**
 ```csharp
 services.AddMediator(); // Same as AddCoordix()
 ```
+
+## Configuration
+
+### CoordixOptions
+
+Configuration options for Coordix mediator services.
+
+```csharp
+public class CoordixOptions
+{
+    public HandlerResolutionMode HandlerResolutionMode { get; set; } = HandlerResolutionMode.Reflection;
+}
+```
+
+**Properties:**
+- `HandlerResolutionMode`: Gets or sets the handler resolution mode. Defaults to `Reflection`.
+
+**Example:**
+```csharp
+services.AddCoordix(options =>
+{
+    options.HandlerResolutionMode = HandlerResolutionMode.Reflection;
+});
+```
+
+### HandlerResolutionMode
+
+Defines the mode used for handler resolution and execution.
+
+```csharp
+public enum HandlerResolutionMode
+{
+    Reflection = 0,        // Uses reflection-based handler resolution (default)
+    CodeGenPreferred = 1  // Uses code generation (requires Coordix.CodeGen package)
+}
+```
+
+**Values:**
+- `Reflection`: Uses reflection-based handler resolution and execution. This is the default mode and provides good performance with cached delegates.
+- `CodeGenPreferred`: Uses code generation for handler resolution and execution. This mode requires the `Coordix.CodeGen` package to be installed and its registration method to be called.
 
 ## Exceptions
 
@@ -274,6 +419,7 @@ services.AddMediator(); // Same as AddCoordix()
 Thrown when:
 - No handler is found for a request type
 - The Handle method is not found on a handler type
+- `HandlerResolutionMode.CodeGenPreferred` is selected without the `Coordix.CodeGen` package
 
 **Example:**
 ```csharp
@@ -284,6 +430,20 @@ try
 catch (InvalidOperationException ex)
 {
     // Handler not found
+    Console.WriteLine(ex.Message);
+}
+
+// CodeGen mode without package
+try
+{
+    services.AddCoordix(options =>
+    {
+        options.HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred;
+    });
+}
+catch (InvalidOperationException ex)
+{
+    // Requires Coordix.CodeGen package
     Console.WriteLine(ex.Message);
 }
 ```

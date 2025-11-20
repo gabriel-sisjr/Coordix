@@ -167,7 +167,10 @@ public async Task<MyResponse> Handle(MyRequest request, CancellationToken cancel
 - `IRequestHandler<TRequest>`
 - `INotificationHandler<TNotification>`
 
-It then registers them as transient services.
+It then registers them as transient services. The method also registers:
+- `IHandlerExecutor` (registry) - based on the selected `HandlerResolutionMode`
+- `IMediator` - depends on `IHandlerExecutor`
+- `CoordixOptions` - configuration options
 
 ### Can I filter which assemblies are scanned?
 
@@ -213,9 +216,11 @@ Yes! Coordix is optimized for performance:
 
 ### How does Coordix achieve good performance?
 
+- **Centralized Execution**: All handler execution logic is centralized in `IHandlerExecutor` (registry)
 - **Cached MethodInfo**: Reflection is performed only once per handler type
 - **Compiled Delegates**: Uses Expression Trees to create strongly-typed delegates
 - **Thread-Safe Caching**: All caches use `ConcurrentDictionary`
+- **No Scattered Reflection**: Reflection is only performed in the registry, not throughout the codebase
 
 ### Should I warm up handlers?
 
@@ -225,6 +230,29 @@ It's not necessary, but you can if you want to avoid the first-call overhead:
 // At startup
 await mediator.Send(new MyRequest { /* dummy data */ });
 ```
+
+### What is HandlerResolutionMode?
+
+`HandlerResolutionMode` is an enum that defines how handlers are resolved and executed:
+
+- **Reflection** (default): Uses reflection-based handler resolution with cached delegates. This provides excellent performance and is the recommended mode for most applications.
+- **CodeGenPreferred**: Uses code generation for handler resolution. This mode requires the `Coordix.CodeGen` package to be installed. When selected without the package, an `InvalidOperationException` is thrown with a clear error message.
+
+```csharp
+services.AddCoordix(options =>
+{
+    options.HandlerResolutionMode = HandlerResolutionMode.Reflection; // Default
+});
+```
+
+### What is IHandlerExecutor?
+
+`IHandlerExecutor` is the centralized handler execution registry. It handles:
+- Handler lookup via dependency injection
+- Caching of MethodInfo and compiled delegates
+- Handler invocation
+
+Both `IMediator` and `BackgroundWorker` use `IHandlerExecutor` to execute handlers. This design centralizes all handler execution logic in a single place, eliminating scattered reflection throughout the codebase.
 
 ### Does Coordix support async/await?
 

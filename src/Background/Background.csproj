@@ -13,7 +13,7 @@
 		<RepositoryUrl>https://github.com/gabriel-sisjr/Coordix</RepositoryUrl>
 		<RepositoryType>Public</RepositoryType>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<Version>0.1.0</Version>
+		<Version>0.2.0</Version>
 		<Title>Coordix.Background</Title>
 		<PackageTags>Coordix, Mediator, Background, Jobs, Fire-and-Forget</PackageTags>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
