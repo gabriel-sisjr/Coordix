@@ -39,7 +39,7 @@ namespace Coordix.Background.Extensions
 			services.AddSingleton<IBackgroundMediator, BackgroundMediator>();
 
 			// Register the background worker as a hosted service
-			services.AddSingleton<IHostedService, BackgroundWorker>();
+			services.AddHostedService<BackgroundWorker>();
 
 			return services;
 		}
