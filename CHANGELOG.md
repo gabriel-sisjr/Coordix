@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Mediator` is simplified to only discover request/notification types
   - All reflection, caching, and invocation logic moved to `HandlerExecutor`
   - Better separation of concerns and extensibility
-- **Background Worker Improvements**: 
+- **Background Worker Improvements**:
   - Replaced heavy reflection on `IMediator` with `IHandlerExecutor` usage
   - Improved scope management: creates `IServiceScope` per job instead of using root scope
   - Better error messages and logging

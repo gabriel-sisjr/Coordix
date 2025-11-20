@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Channels;
@@ -153,9 +154,13 @@ namespace Coordix.Background.Implementation
 			CancellationToken cancellationToken)
 		{
 			// Get the generic method ExecuteRequestHandler<TResponse>
-			var method = typeof(IHandlerExecutor).GetMethod(
-				nameof(IHandlerExecutor.ExecuteRequestHandler),
-				new Type[] { typeof(IRequest<>).MakeGenericType(responseType), typeof(CancellationToken) });
+			// Need to find the generic method definition first
+			var method = typeof(IHandlerExecutor).GetMethods()
+				.FirstOrDefault(m => m.Name == nameof(IHandlerExecutor.ExecuteRequestHandler) &&
+														 m.IsGenericMethod &&
+														 m.GetParameters().Length == 2 &&
+														 m.GetParameters()[0].ParameterType.IsGenericType &&
+														 m.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == typeof(IRequest<>));
 
 			if (method == null)
 			{
@@ -165,9 +170,15 @@ namespace Coordix.Background.Implementation
 			// Make the generic method with the response type
 			var genericMethod = method.MakeGenericMethod(responseType);
 
-			// Invoke the method
-			var task = (Task)genericMethod.Invoke(handlerExecutor, new object[] { request, cancellationToken })!;
-			await task;
+			// Invoke the method - returns Task<TResponse>
+			var task = genericMethod.Invoke(handlerExecutor, new object[] { request, cancellationToken });
+			if (task == null)
+			{
+				throw new InvalidOperationException($"Failed to invoke ExecuteRequestHandler for response type {responseType.Name}.");
+			}
+
+			// Await the Task<TResponse> - can cast to Task and await it
+			await (Task)task;
 		}
 
 		/// <summary>
@@ -185,9 +196,12 @@ namespace Coordix.Background.Implementation
 			CancellationToken cancellationToken)
 		{
 			// Get the generic method ExecuteNotificationHandler<TNotification>
-			var method = typeof(IHandlerExecutor).GetMethod(
-				nameof(IHandlerExecutor.ExecuteNotificationHandler),
-				new Type[] { notificationType, typeof(CancellationToken) });
+			// Need to find the generic method definition first
+			var method = typeof(IHandlerExecutor).GetMethods()
+				.FirstOrDefault(m => m.Name == nameof(IHandlerExecutor.ExecuteNotificationHandler) &&
+														 m.IsGenericMethod &&
+														 m.GetParameters().Length == 2 &&
+														 m.GetGenericArguments().Length == 1);
 
 			if (method == null)
 			{
@@ -197,7 +211,7 @@ namespace Coordix.Background.Implementation
 			// Make the generic method with the notification type
 			var genericMethod = method.MakeGenericMethod(notificationType);
 
-			// Invoke the method
+			// Invoke the method - returns Task
 			var task = (Task)genericMethod.Invoke(handlerExecutor, new object[] { notification, cancellationToken })!;
 			await task;
 		}
