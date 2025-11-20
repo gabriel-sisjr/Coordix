@@ -11,6 +11,19 @@ namespace Coordix.Extensions
 	{
 		/// <summary>
 		/// Adds the Coordix mediator services and handler registrations to the dependency injection container.
+		/// This is an alias for <see cref="AddCoordix(IServiceCollection)"/>.
+		/// </summary>
+		/// <param name="services">
+		/// The <see cref="IServiceCollection"/> to which the mediator and handlers will be added.
+		/// </param>
+		/// <returns>
+		/// The same <see cref="IServiceCollection"/> instance, to allow chaining.
+		/// </returns>
+		public static IServiceCollection AddMediator(this IServiceCollection services)
+				=> AddCoordix(services);
+
+		/// <summary>
+		/// Adds the Coordix mediator services and handler registrations to the dependency injection container.
 		/// This is an alias for <see cref="AddCoordix(IServiceCollection, object[])"/>.
 		/// </summary>
 		/// <param name="services">
@@ -27,9 +40,22 @@ namespace Coordix.Extensions
 				=> AddCoordix(services, args);
 
 		/// <summary>
-		/// Registers the core Coordix services including IHandlerExecutor (registry) and IMediator,
-		/// and scans the specified assemblies for implementations of notification and request handler
-		/// interfaces, registering them as transient services.
+		/// Adds the Coordix mediator services and handler registrations to the dependency injection container.
+		/// </summary>
+		/// <param name="services">
+		/// The <see cref="IServiceCollection"/> to which the mediator, handler executor, and handlers will be added.
+		/// </param>
+		/// <returns>
+		/// The same <see cref="IServiceCollection"/> instance, to allow chaining.
+		/// </returns>
+		public static IServiceCollection AddCoordix(this IServiceCollection services)
+		{
+			return AddCoordix(services, (Action<CoordixOptions>?)null);
+		}
+
+		/// <summary>
+		/// Adds the Coordix mediator services and handler registrations to the dependency injection container
+		/// with assembly scanning parameters (backward compatibility).
 		/// </summary>
 		/// <param name="services">
 		/// The <see cref="IServiceCollection"/> to which the mediator, handler executor, and handlers will be added.
@@ -41,19 +67,149 @@ namespace Coordix.Extensions
 		/// <returns>
 		/// The same <see cref="IServiceCollection"/> instance, to allow chaining.
 		/// </returns>
-		/// <remarks>
-		/// Registration order:
-		/// 1. IHandlerExecutor (registry) - registered as singleton, centralizes all handler execution logic
-		/// 2. IMediator - registered as singleton, depends on IHandlerExecutor
-		/// 3. Handler implementations - registered as transient, discovered via assembly scanning
-		/// </remarks>
 		public static IServiceCollection AddCoordix(this IServiceCollection services, params object[] args)
 		{
+			return AddCoordix(services, (Action<CoordixOptions>?)null, args);
+		}
+
+		/// <summary>
+		/// Adds the Coordix mediator services and handler registrations to the dependency injection container
+		/// with optional configuration.
+		/// </summary>
+		/// <param name="services">
+		/// The <see cref="IServiceCollection"/> to which the mediator, handler executor, and handlers will be added.
+		/// </param>
+		/// <param name="configureOptions">
+		/// Optional action to configure the <see cref="CoordixOptions"/>. If not provided, defaults are used
+		/// (HandlerResolutionMode.Reflection).
+		/// </param>
+		/// <returns>
+		/// The same <see cref="IServiceCollection"/> instance, to allow chaining.
+		/// </returns>
+		/// <exception cref="NotImplementedException">
+		/// Thrown when <see cref="HandlerResolutionMode.CodeGenPreferred"/> is selected, as this mode
+		/// is not yet implemented.
+		/// </exception>
+		public static IServiceCollection AddCoordix(
+			this IServiceCollection services,
+			Action<CoordixOptions>? configureOptions)
+		{
+			return AddCoordix(services, configureOptions, Array.Empty<object>());
+		}
+
+		/// <summary>
+		/// Adds the Coordix mediator services and handler registrations to the dependency injection container
+		/// with optional configuration and assembly scanning parameters.
+		/// </summary>
+		/// <param name="services">
+		/// The <see cref="IServiceCollection"/> to which the mediator, handler executor, and handlers will be added.
+		/// </param>
+		/// <param name="configureOptions">
+		/// Optional action to configure the <see cref="CoordixOptions"/>. If not provided, defaults are used
+		/// (HandlerResolutionMode.Reflection).
+		/// </param>
+		/// <param name="args">
+		/// Optional parameters to control which assemblies are scanned—either none, an array of <see cref="Assembly"/>,
+		/// or namespace prefix strings.
+		/// </param>
+		/// <returns>
+		/// The same <see cref="IServiceCollection"/> instance, to allow chaining.
+		/// </returns>
+		/// <exception cref="NotImplementedException">
+		/// Thrown when <see cref="HandlerResolutionMode.CodeGenPreferred"/> is selected, as this mode
+		/// is not yet implemented.
+		/// </exception>
+		/// <remarks>
+		/// Registration order:
+		/// 1. CoordixOptions - registered as singleton
+		/// 2. IHandlerExecutor (registry) - registered as singleton based on HandlerResolutionMode
+		/// 3. IMediator - registered as singleton, depends on IHandlerExecutor
+		/// 4. Handler implementations - registered as transient, discovered via assembly scanning
+		/// </remarks>
+		public static IServiceCollection AddCoordix(
+			this IServiceCollection services,
+			Action<CoordixOptions>? configureOptions,
+			params object[] args)
+		{
+			// Instantiate options with defaults
+			var options = new CoordixOptions();
+
+			// Apply configuration delegate if provided
+			configureOptions?.Invoke(options);
+
+			return AddCoordix(services, options, args);
+		}
+
+
+		/// <summary>
+		/// Registers the core Coordix services including IHandlerExecutor (registry) and IMediator,
+		/// and scans the specified assemblies for implementations of notification and request handler
+		/// interfaces, registering them as transient services.
+		/// </summary>
+		/// <param name="services">
+		/// The <see cref="IServiceCollection"/> to which the mediator, handler executor, and handlers will be added.
+		/// </param>
+		/// <param name="options">
+		/// Configuration options for Coordix services.
+		/// </param>
+		/// <param name="args">
+		/// Optional parameters to control which assemblies are scanned—either none, an array of <see cref="Assembly"/>,
+		/// or namespace prefix strings.
+		/// </param>
+		/// <returns>
+		/// The same <see cref="IServiceCollection"/> instance, to allow chaining.
+		/// </returns>
+		/// <exception cref="NotImplementedException">
+		/// Thrown when <see cref="HandlerResolutionMode.CodeGenPreferred"/> is selected, as this mode
+		/// is not yet implemented.
+		/// </exception>
+		/// <remarks>
+		/// Registration order:
+		/// 1. CoordixOptions - registered as singleton
+		/// 2. IHandlerExecutor (registry) - registered as singleton based on HandlerResolutionMode
+		/// 3. IMediator - registered as singleton, depends on IHandlerExecutor
+		/// 4. Handler implementations - registered as transient, discovered via assembly scanning
+		/// </remarks>
+		private static IServiceCollection AddCoordix(
+			this IServiceCollection services,
+			CoordixOptions options,
+			params object[] args)
+		{
+			if (options == null)
+			{
+				throw new ArgumentNullException(nameof(options));
+			}
+
 			var assemblies = ResolveAssemblies(args);
 
-			// Register HandlerExecutor (registry) first - this centralizes all handler execution logic
-			// including reflection, caching, and invocation. Registered as singleton to share caches.
-			services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
+			// Register CoordixOptions as singleton so it can be injected
+			services.AddSingleton(options);
+
+			// Register HandlerExecutor (registry) based on the selected resolution mode
+			// This allows different implementations to be plugged in based on the mode.
+			// When Coordix.CodeGen package is added, it will provide its own registration
+			// method that registers a code-generated implementation for CodeGenPreferred mode.
+			switch (options.HandlerResolutionMode)
+			{
+				case HandlerResolutionMode.Reflection:
+					// Register reflection-based handler executor - this centralizes all handler execution logic
+					// including reflection, caching, and invocation. Registered as singleton to share caches.
+					RegisterReflectionBasedExecutor(services);
+					break;
+
+				case HandlerResolutionMode.CodeGenPreferred:
+					// Code generation mode requires the Coordix.CodeGen package to be installed
+					// and its registration method to be called. This ensures explicit opt-in
+					// rather than silent fallback behavior.
+					throw new InvalidOperationException(
+						$"HandlerResolutionMode.{nameof(HandlerResolutionMode.CodeGenPreferred)} requires the Coordix.CodeGen package. " +
+						$"Install the package and call the CodeGen registration method, or use {nameof(HandlerResolutionMode.Reflection)} mode.");
+
+				default:
+					throw new ArgumentOutOfRangeException(
+						nameof(options),
+						$"Unknown HandlerResolutionMode: {options.HandlerResolutionMode}");
+			}
 
 			// Register Mediator - depends on IHandlerExecutor via constructor injection
 			services.AddSingleton<IMediator, Mediator>();
@@ -127,6 +283,19 @@ namespace Coordix.Extensions
 					.GetAssemblies()
 					.Where(a => !a.IsDynamic && !string.IsNullOrWhiteSpace(a.FullName))
 					.ToArray();
+		}
+
+		/// <summary>
+		/// Registers the reflection-based handler executor implementation.
+		/// This method is called when HandlerResolutionMode.Reflection is selected.
+		/// When Coordix.CodeGen is added, it will provide a similar method for CodeGenPreferred mode.
+		/// </summary>
+		/// <param name="services">The service collection to register the executor in.</param>
+		private static void RegisterReflectionBasedExecutor(IServiceCollection services)
+		{
+			// Register reflection-based handler executor - this centralizes all handler execution logic
+			// including reflection, caching, and invocation. Registered as singleton to share caches.
+			services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
 		}
 
 		/// <summary>
