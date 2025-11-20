@@ -234,18 +234,45 @@ If you're migrating from MediatR, you can use the `AddMediator` alias:
 services.AddMediator(); // Same as AddCoordix()
 ```
 
+## Extension Packages
+
+Coordix has extension packages that add additional functionality:
+
+### Coordix.Background
+
+[![Coordix.Background NuGet Version](https://img.shields.io/nuget/vpre/Coordix.Background.svg)](https://www.nuget.org/packages/Coordix.Background)
+
+Background job processing for fire-and-forget in-process jobs:
+
+```bash
+dotnet add package Coordix.Background
+```
+
+```csharp
+services.AddCoordix();           // Core mediator (required)
+services.AddCoordixBackground(); // Background jobs extension
+```
+
+See the [Background Jobs Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/background/background-jobs.md) for more information.
+
 ## Documentation
 
 For comprehensive documentation, visit the [GitHub repository](https://github.com/gabriel-sisjr/coordix):
 
-- 📖 [Installation Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/installation.md)
-- 🚀 [Getting Started Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/getting-started.md)
-- 📚 [Usage Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/usage.md)
-- ⚡ [Performance Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/performance.md)
-- 🔧 [API Reference](https://github.com/gabriel-sisjr/coordix/blob/main/docs/api-reference.md)
-- 🎯 [Best Practices](https://github.com/gabriel-sisjr/coordix/blob/main/docs/best-practices.md)
-- 🔄 [Migration Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/migration.md)
-- ❓ [FAQ](https://github.com/gabriel-sisjr/coordix/blob/main/docs/faq.md)
+### Core Documentation
+
+- 📖 [Installation Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/core/installation.md)
+- 🚀 [Getting Started Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/core/getting-started.md)
+- 📚 [Usage Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/core/usage.md)
+- ⚡ [Performance Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/core/performance.md)
+- 🔧 [API Reference](https://github.com/gabriel-sisjr/coordix/blob/main/docs/core/api-reference.md)
+- 🎯 [Best Practices](https://github.com/gabriel-sisjr/coordix/blob/main/docs/core/best-practices.md)
+- 🔄 [Migration Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/core/migration.md)
+- ❓ [FAQ](https://github.com/gabriel-sisjr/coordix/blob/main/docs/core/faq.md)
+
+### Extension Packages
+
+- 🔄 [Background Jobs Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/background/background-jobs.md) - Coordix.Background package
 
 ## Examples
 

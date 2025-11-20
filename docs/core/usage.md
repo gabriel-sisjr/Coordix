@@ -12,6 +12,7 @@ This guide covers advanced usage patterns and common scenarios with Coordix.
 - [Cancellation Tokens](#cancellation-tokens)
 - [Error Handling](#error-handling)
 - [Testing](#testing)
+- [Background Jobs with Coordix.Background](#background-jobs-with-coordixbackground)
 - [Advanced Patterns](#advanced-patterns)
 
 ## Request/Response Pattern
@@ -461,9 +462,90 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand>
 }
 ```
 
+## Background Jobs with Coordix.Background
+
+`Coordix.Background` is a separate NuGet package that extends Coordix with fire-and-forget background job processing.
+
+### Installation
+
+```bash
+dotnet add package Coordix.Background
+```
+
+### Configuration
+
+```csharp
+using Coordix.Extensions;
+using Coordix.Background.Extensions;
+
+services.AddCoordix();           // Core mediator (required)
+services.AddCoordixBackground(); // Background jobs extension
+```
+
+### Enqueueing Background Jobs
+
+#### Enqueue a Request
+
+```csharp
+using Coordix.Background.Interfaces;
+
+public class OrderController : ControllerBase
+{
+    private readonly IBackgroundMediator _backgroundMediator;
+
+    public OrderController(IBackgroundMediator backgroundMediator)
+    {
+        _backgroundMediator = backgroundMediator;
+    }
+
+    [HttpPost("orders")]
+    public async Task<IActionResult> CreateOrder(CreateOrderRequest request)
+    {
+        // Process synchronously
+        var order = await _mediator.Send(new CreateOrderCommand { ... });
+
+        // Enqueue background job (fire-and-forget)
+        await _backgroundMediator.Enqueue(new SendOrderConfirmationEmail 
+        { 
+            OrderId = order.Id 
+        });
+
+        return Ok(order);
+    }
+}
+```
+
+#### Enqueue a Notification
+
+```csharp
+// Enqueue notification for background processing
+await _backgroundMediator.Enqueue(new OrderCreatedNotification 
+{ 
+    OrderId = "ORD-123",
+    CustomerId = "CUST-456"
+});
+```
+
+### When to Use Background Jobs
+
+Use `IBackgroundMediator` for operations that:
+- Don't need immediate feedback
+- Can be processed asynchronously
+- Shouldn't block the HTTP response
+- Are non-critical (logging, emails, notifications)
+
+### Important Notes
+
+- Background jobs use the **same handlers** registered with `AddCoordix()`
+- Jobs are processed **outside the original request context**
+- Exceptions in one job **don't stop processing** of other jobs
+- Jobs are **in-process only** (lost on application restart)
+
+For complete documentation, see the [Background Jobs Guide](../background/background-jobs.md).
+
 ## Next Steps
 
 - Read [Best Practices](./best-practices.md) for recommended patterns
 - Check the [API Reference](./api-reference.md) for complete API documentation
-- Explore the [Examples](../samples) folder for more patterns
+- Explore the [Examples](../../samples) folder for more patterns
 

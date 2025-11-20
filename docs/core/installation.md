@@ -26,7 +26,7 @@ Install-Package Coordix
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="Coordix" Version="0.0.4" />
+  <PackageReference Include="Coordix" Version="0.1.0" />
 </ItemGroup>
 ```
 
@@ -201,9 +201,70 @@ var mediator = serviceProvider.GetRequiredService<IMediator>();
 // If no exception is thrown, Coordix is properly configured
 ```
 
+## Installing Coordix.Background
+
+`Coordix.Background` is a separate package that extends Coordix with background job processing capabilities.
+
+### Installation
+
+```bash
+dotnet add package Coordix.Background
+```
+
+> **Note**: `Coordix.Background` automatically installs `Coordix` as a dependency. You still need to call `AddCoordix()` to register the core mediator.
+
+### Configuration
+
+```csharp
+using Coordix.Extensions;
+using Coordix.Background.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Register Coordix core
+builder.Services.AddCoordix();
+
+// Register Coordix.Background for background jobs
+builder.Services.AddCoordixBackground();
+
+// Register your handlers
+builder.Services.AddScoped<IRequestHandler<MyRequest>, MyHandler>();
+```
+
+### Usage
+
+```csharp
+using Coordix.Background.Interfaces;
+
+public class MyController : ControllerBase
+{
+    private readonly IBackgroundMediator _backgroundMediator;
+
+    public MyController(IBackgroundMediator backgroundMediator)
+    {
+        _backgroundMediator = backgroundMediator;
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateOrder(CreateOrderRequest request)
+    {
+        // Process synchronously
+        var order = await _mediator.Send(new CreateOrderCommand { ... });
+
+        // Enqueue background job (fire-and-forget)
+        await _backgroundMediator.Enqueue(new SendOrderConfirmationEmail { OrderId = order.Id });
+
+        return Ok(order);
+    }
+}
+```
+
+For more information about `Coordix.Background`, see the [Background Jobs Guide](../background/background-jobs.md).
+
 ## Next Steps
 
 - Read the [Getting Started Guide](./getting-started.md) for a step-by-step tutorial
 - Check out the [Usage Guide](./usage.md) for advanced patterns
-- Explore the [Examples](../samples) folder for complete examples
+- Learn about [Background Jobs](../background/background-jobs.md) with Coordix.Background
+- Explore the [Examples](../../samples) folder for complete examples
 

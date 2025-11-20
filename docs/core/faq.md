@@ -40,13 +40,44 @@ Yes! Coordix is designed for production use with:
 dotnet add package Coordix
 ```
 
+### What packages are available?
+
+Coordix is distributed as separate packages:
+
+- **Coordix** - Core mediator implementation (required)
+- **Coordix.Background** - Background job processing extension (optional)
+
+```bash
+# Install core
+dotnet add package Coordix
+
+# Install background jobs extension
+dotnet add package Coordix.Background
+```
+
 ### How do I register Coordix?
 
 ```csharp
 using Coordix.Extensions;
 
+// Register core mediator
 services.AddCoordix();
 ```
+
+### How do I register Coordix.Background?
+
+```csharp
+using Coordix.Extensions;
+using Coordix.Background.Extensions;
+
+// Register core mediator (required)
+services.AddCoordix();
+
+// Register background jobs extension
+services.AddCoordixBackground();
+```
+
+> **Note**: `Coordix.Background` requires `Coordix` to be installed. Always register `AddCoordix()` before `AddCoordixBackground()`.
 
 ### Can I use Coordix in a console application?
 
@@ -306,9 +337,55 @@ Yes! Contributions are welcome. Please:
 3. Make your changes
 4. Submit a pull request
 
+## Background Jobs Questions
+
+### What is Coordix.Background?
+
+`Coordix.Background` is a separate NuGet package that extends Coordix with fire-and-forget background job processing. It allows you to enqueue requests and notifications to be processed asynchronously.
+
+### When should I use Coordix.Background?
+
+Use `Coordix.Background` for:
+- Email sending (don't block HTTP response)
+- Logging/Auditing (non-critical operations)
+- Notifications (user notifications, push notifications)
+- Data processing (heavy computations)
+- External API calls (third-party integrations)
+
+### How do I enqueue a background job?
+
+```csharp
+using Coordix.Background.Interfaces;
+
+// Inject IBackgroundMediator
+private readonly IBackgroundMediator _backgroundMediator;
+
+// Enqueue a request
+await _backgroundMediator.Enqueue(new SendEmailRequest { To = "user@example.com" });
+
+// Enqueue a notification
+await _backgroundMediator.Enqueue(new OrderCreatedNotification { OrderId = "123" });
+```
+
+### Do background jobs use the same handlers?
+
+Yes! Background jobs use the same handlers registered with `AddCoordix()`. You don't need separate handlers.
+
+### What happens if a background job fails?
+
+Exceptions in background jobs are logged but don't stop processing of other jobs. The background worker continues processing the queue.
+
+### Are background jobs persisted?
+
+No. `Coordix.Background` uses in-process channels. Jobs are lost if the application restarts. For persistence, consider external message queues.
+
+For more information, see the [Background Jobs Guide](../background/background-jobs.md).
+
 ## Next Steps
 
 - Read the [Getting Started Guide](./getting-started.md)
 - Check the [Usage Guide](./usage.md) for examples
-- Explore the [Examples](../samples) folder
+- Learn about [Background Jobs](../background/background-jobs.md) with Coordix.Background
+- Explore the [Examples](../../samples) folder
+
 

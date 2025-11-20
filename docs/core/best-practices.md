@@ -11,6 +11,7 @@ This guide covers recommended patterns and best practices when using Coordix.
 - [Notification Design](#notification-design)
 - [Error Handling](#error-handling)
 - [Testing](#testing)
+- [Background Jobs](#background-jobs)
 - [Performance](#performance)
 - [Security](#security)
 
@@ -423,6 +424,105 @@ public Task<MyResponse> Handle(MyRequest request, CancellationToken ct)
 }
 ```
 
+## Background Jobs
+
+When using `Coordix.Background` (separate package), follow these best practices:
+
+### When to Use Background Jobs
+
+✅ **Use background jobs for:**
+- Email sending
+- Logging/Auditing
+- User notifications
+- Non-critical data processing
+- External API calls (third-party integrations)
+
+❌ **Don't use background jobs for:**
+- Critical operations requiring immediate feedback
+- Operations that need the response value
+- Time-sensitive operations
+- Operations requiring transaction context
+
+### Registration Order
+
+Always register Coordix core before Coordix.Background:
+
+```csharp
+// ✅ Correct order
+services.AddCoordix();           // Core mediator
+services.AddCoordixBackground(); // Background extension
+
+// ❌ Wrong - Background needs core
+services.AddCoordixBackground();
+services.AddCoordix();
+```
+
+### Error Handling in Background Jobs
+
+Background jobs should handle errors gracefully:
+
+```csharp
+public class SendEmailHandler : IRequestHandler<SendEmailRequest>
+{
+    private readonly ILogger<SendEmailHandler> _logger;
+    private readonly IEmailService _emailService;
+
+    public async Task Handle(SendEmailRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _emailService.SendAsync(request.To, request.Subject, request.Body);
+        }
+        catch (Exception ex)
+        {
+            // Log and handle gracefully - don't let it crash the worker
+            _logger.LogError(ex, "Failed to send email to {To}", request.To);
+            // Consider implementing retry logic or dead-letter queue
+        }
+    }
+}
+```
+
+### Service Lifetime Considerations
+
+Background jobs run outside the original request scope. Ensure handlers and their dependencies are registered with appropriate lifetimes:
+
+```csharp
+// Handlers are resolved from a new scope for each job
+services.AddScoped<IRequestHandler<MyRequest>, MyHandler>();
+services.AddScoped<IMyService, MyService>(); // Available in handler
+```
+
+### Don't Mix Synchronous and Background Processing
+
+Be clear about when to use `IMediator` vs `IBackgroundMediator`:
+
+```csharp
+// ✅ Clear separation
+public class OrderController : ControllerBase
+{
+    private readonly IMediator _mediator;
+    private readonly IBackgroundMediator _backgroundMediator;
+
+    [HttpPost]
+    public async Task<IActionResult> CreateOrder(CreateOrderRequest request)
+    {
+        // Critical: Process synchronously
+        var order = await _mediator.Send(new CreateOrderCommand { ... });
+
+        // Non-critical: Process in background
+        await _backgroundMediator.Enqueue(new SendOrderConfirmationEmail 
+        { 
+            OrderId = order.Id 
+        });
+
+        return Ok(order);
+    }
+}
+```
+
+For more information, see the [Background Jobs Guide](../background/background-jobs.md).
+
 ## Security
 
 ### Validate Input
@@ -478,5 +578,5 @@ public class DeleteUserCommandHandler : IRequestHandler<DeleteUserCommand>
 
 - Read the [Usage Guide](./usage.md) for more examples
 - Check the [API Reference](./api-reference.md) for complete API documentation
-- Explore the [Examples](../samples) for real-world patterns
+- Explore the [Examples](../../samples) for real-world patterns
 

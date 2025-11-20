@@ -17,8 +17,14 @@ cd MyCoordixApp
 ## Step 2: Install Coordix
 
 ```bash
+# Install the core package
 dotnet add package Coordix
+
+# Optional: Install Coordix.Background for background jobs
+dotnet add package Coordix.Background
 ```
+
+> **Note**: `Coordix.Background` is a separate package that extends Coordix with background job processing. It requires `Coordix` to be installed first.
 
 ## Step 3: Register Coordix
 
@@ -302,5 +308,5 @@ public class UsersController : ControllerBase
 
 - Read the [Usage Guide](./usage.md) for advanced patterns
 - Check out [Best Practices](./best-practices.md) for recommended patterns
-- Explore the [Examples](../samples) folder for complete applications
+- Explore the [Examples](../../samples) folder for complete applications
 

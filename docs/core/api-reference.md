@@ -327,5 +327,5 @@ All public APIs are thread-safe:
 
 - Read the [Usage Guide](./usage.md) for examples
 - Check [Best Practices](./best-practices.md) for recommended patterns
-- Explore the [Examples](../samples) for complete implementations
+- Explore the [Examples](../../samples) for complete implementations
 

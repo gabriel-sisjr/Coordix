@@ -332,5 +332,5 @@ If you encounter issues during migration:
 
 - Read the [Getting Started Guide](./getting-started.md)
 - Check [Best Practices](./best-practices.md)
-- Explore the [Examples](../samples)
+- Explore the [Examples](../../samples)
 

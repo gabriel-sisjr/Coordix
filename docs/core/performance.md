@@ -269,5 +269,5 @@ Coordix is designed to scale well:
 
 - Read [Best Practices](./best-practices.md) for more optimization tips
 - Check the [API Reference](./api-reference.md) for performance-related APIs
-- Explore the [Examples](../samples) to see performance patterns in action
+- Explore the [Examples](../../samples) to see performance patterns in action
 
