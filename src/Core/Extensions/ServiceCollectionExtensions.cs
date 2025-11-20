@@ -44,6 +44,8 @@ namespace Coordix.Extensions
 		{
 			var assemblies = ResolveAssemblies(args);
 
+			// Register HandlerExecutor first (used by Mediator)
+			services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
 			services.AddSingleton<IMediator, Mediator>();
 
 			RegisterHandlers(services, assemblies, typeof(INotificationHandler<>));

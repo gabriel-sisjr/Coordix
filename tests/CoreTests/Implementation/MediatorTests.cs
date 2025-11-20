@@ -6,6 +6,7 @@ using Coordix.Interfaces;
 using Coordix.Tests.Samples;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using Xunit;
 
 namespace Coordix.Tests.Implementation;
 
@@ -22,8 +23,10 @@ public sealed class MediatorTests
 
 		var services = new ServiceCollection();
 		services.AddSingleton(handlerMock.Object);
+		services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
 		var provider = services.BuildServiceProvider();
-		var mediator = new Mediator(provider);
+		var handlerExecutor = provider.GetRequiredService<IHandlerExecutor>();
+		var mediator = new Mediator(handlerExecutor);
 
 		var result = await mediator.Send(req);
 
@@ -34,8 +37,11 @@ public sealed class MediatorTests
 	[Fact]
 	public async Task Send_Generic_WhenNoHandler_Throws()
 	{
-		var provider = new ServiceCollection().BuildServiceProvider();
-		var mediator = new Mediator(provider);
+		var services = new ServiceCollection();
+		services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
+		var provider = services.BuildServiceProvider();
+		var handlerExecutor = provider.GetRequiredService<IHandlerExecutor>();
+		var mediator = new Mediator(handlerExecutor);
 
 		var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Send(new TestRequest()));
 		Assert.Contains(nameof(TestRequest), ex.Message);
@@ -52,8 +58,10 @@ public sealed class MediatorTests
 
 		var services = new ServiceCollection();
 		services.AddSingleton(handlerMock.Object);
+		services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
 		var provider = services.BuildServiceProvider();
-		var mediator = new Mediator(provider);
+		var handlerExecutor = provider.GetRequiredService<IHandlerExecutor>();
+		var mediator = new Mediator(handlerExecutor);
 
 		await mediator.Send(req);
 
@@ -63,8 +71,11 @@ public sealed class MediatorTests
 	[Fact]
 	public async Task Send_Void_WhenNoHandler_Throws()
 	{
-		var provider = new ServiceCollection().BuildServiceProvider();
-		var mediator = new Mediator(provider);
+		var services = new ServiceCollection();
+		services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
+		var provider = services.BuildServiceProvider();
+		var handlerExecutor = provider.GetRequiredService<IHandlerExecutor>();
+		var mediator = new Mediator(handlerExecutor);
 
 		var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Send(new VoidRequest()));
 		Assert.Contains(nameof(VoidRequest), ex.Message);
@@ -74,8 +85,11 @@ public sealed class MediatorTests
 	public async Task Publish_WithNoHandlers_DoesNotThrow()
 	{
 		var notification = new TestNotification();
-		var provider = new ServiceCollection().BuildServiceProvider();
-		var mediator = new Mediator(provider);
+		var services = new ServiceCollection();
+		services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
+		var provider = services.BuildServiceProvider();
+		var handlerExecutor = provider.GetRequiredService<IHandlerExecutor>();
+		var mediator = new Mediator(handlerExecutor);
 
 		await mediator.Publish(notification);
 	}
@@ -100,8 +114,10 @@ public sealed class MediatorTests
 		var services = new ServiceCollection();
 		services.AddSingleton(handlerMock1.Object);
 		services.AddSingleton(handlerMock2.Object);
+		services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
 		var provider = services.BuildServiceProvider();
-		var mediator = new Mediator(provider);
+		var handlerExecutor = provider.GetRequiredService<IHandlerExecutor>();
+		var mediator = new Mediator(handlerExecutor);
 
 		await mediator.Publish(notification);
 
@@ -120,7 +136,10 @@ public sealed class MediatorTests
 
 		var services = new ServiceCollection();
 		services.AddSingleton(handlerMock.Object);
-		var mediator = new Mediator(services.BuildServiceProvider());
+		services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
+		var provider = services.BuildServiceProvider();
+		var handlerExecutor = provider.GetRequiredService<IHandlerExecutor>();
+		var mediator = new Mediator(handlerExecutor);
 
 		var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Send(req));
 		Assert.Equal("boom", ex.Message);
@@ -140,7 +159,10 @@ public sealed class MediatorTests
 
 		var services = new ServiceCollection();
 		services.AddSingleton(handlerMock.Object);
-		var mediator = new Mediator(services.BuildServiceProvider());
+		services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
+		var provider = services.BuildServiceProvider();
+		var handlerExecutor = provider.GetRequiredService<IHandlerExecutor>();
+		var mediator = new Mediator(handlerExecutor);
 
 		await Assert.ThrowsAsync<OperationCanceledException>(() => mediator.Send(req, cts.Token));
 
@@ -158,7 +180,10 @@ public sealed class MediatorTests
 
 		var services = new ServiceCollection();
 		services.AddSingleton(handlerMock.Object);
-		var mediator = new Mediator(services.BuildServiceProvider());
+		services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
+		var provider = services.BuildServiceProvider();
+		var handlerExecutor = provider.GetRequiredService<IHandlerExecutor>();
+		var mediator = new Mediator(handlerExecutor);
 
 		var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Publish(notification));
 		Assert.Equal("notify failed", ex.Message);
@@ -183,7 +208,10 @@ public sealed class MediatorTests
 		var services = new ServiceCollection();
 		services.AddSingleton(handlerMock1.Object);
 		services.AddSingleton(handlerMock2.Object);
-		var mediator = new Mediator(services.BuildServiceProvider());
+		services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
+		var provider = services.BuildServiceProvider();
+		var handlerExecutor = provider.GetRequiredService<IHandlerExecutor>();
+		var mediator = new Mediator(handlerExecutor);
 
 		await mediator.Publish(notification, cts.Token);
 
@@ -203,8 +231,10 @@ public sealed class MediatorTests
 
 		var services = new ServiceCollection();
 		services.AddSingleton(handlerMock.Object);
+		services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
 		var provider = services.BuildServiceProvider();
-		var mediator = new Mediator(provider);
+		var handlerExecutor = provider.GetRequiredService<IHandlerExecutor>();
+		var mediator = new Mediator(handlerExecutor);
 
 		// First invocation - should create and cache delegate
 		await mediator.Send(req1);
@@ -237,8 +267,10 @@ public sealed class MediatorTests
 
 		var services = new ServiceCollection();
 		services.AddSingleton(handlerMock.Object);
+		services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
 		var provider = services.BuildServiceProvider();
-		var mediator = new Mediator(provider);
+		var handlerExecutor = provider.GetRequiredService<IHandlerExecutor>();
+		var mediator = new Mediator(handlerExecutor);
 
 		// First invocation
 		await mediator.Send(req1);
@@ -268,8 +300,10 @@ public sealed class MediatorTests
 
 		var services = new ServiceCollection();
 		services.AddSingleton(handlerMock.Object);
+		services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
 		var provider = services.BuildServiceProvider();
-		var mediator = new Mediator(provider);
+		var handlerExecutor = provider.GetRequiredService<IHandlerExecutor>();
+		var mediator = new Mediator(handlerExecutor);
 
 		// First invocation
 		await mediator.Publish(notification1);
@@ -304,8 +338,10 @@ public sealed class MediatorTests
 		var services = new ServiceCollection();
 		services.AddSingleton(handlerMock1.Object);
 		services.AddSingleton(handlerMock2.Object);
+		services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
 		var provider = services.BuildServiceProvider();
-		var mediator = new Mediator(provider);
+		var handlerExecutor = provider.GetRequiredService<IHandlerExecutor>();
+		var mediator = new Mediator(handlerExecutor);
 
 		await mediator.Send(req1);
 		await mediator.Send(req2);
@@ -332,8 +368,10 @@ public sealed class MediatorTests
 
 		var services = new ServiceCollection();
 		services.AddSingleton(handlerMock.Object);
+		services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
 		var provider = services.BuildServiceProvider();
-		var mediator = new Mediator(provider);
+		var handlerExecutor = provider.GetRequiredService<IHandlerExecutor>();
+		var mediator = new Mediator(handlerExecutor);
 
 		// First invocation - should cache MethodInfo
 		await mediator.Send(req);
@@ -364,8 +402,10 @@ public sealed class MediatorTests
 
 		var services = new ServiceCollection();
 		services.AddSingleton(handlerMock.Object);
+		services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
 		var provider = services.BuildServiceProvider();
-		var mediator = new Mediator(provider);
+		var handlerExecutor = provider.GetRequiredService<IHandlerExecutor>();
+		var mediator = new Mediator(handlerExecutor);
 
 		// First invocation
 		await mediator.Publish(notification);
@@ -394,8 +434,10 @@ public sealed class MediatorTests
 
 		var services = new ServiceCollection();
 		services.AddSingleton(handlerMock.Object);
+		services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
 		var provider = services.BuildServiceProvider();
-		var mediator = new Mediator(provider);
+		var handlerExecutor = provider.GetRequiredService<IHandlerExecutor>();
+		var mediator = new Mediator(handlerExecutor);
 
 		// Concurrent invocations
 		var tasks = Enumerable.Range(0, 10)
@@ -413,30 +455,31 @@ public sealed class MediatorTests
 	}
 
 	// Helper methods to access private static cache fields via reflection
+	// Note: Caches are now in HandlerExecutor, not Mediator
 	private static int GetMethodInfoCacheCount(Type handlerType)
 	{
-		var field = typeof(Mediator).GetField("_methodInfoCache", BindingFlags.NonPublic | BindingFlags.Static);
+		var field = typeof(HandlerExecutor).GetField("_methodInfoCache", BindingFlags.NonPublic | BindingFlags.Static);
 		var cache = (ConcurrentDictionary<Type, MethodInfo>)field!.GetValue(null)!;
 		return cache.ContainsKey(handlerType) ? 1 : 0;
 	}
 
 	private static int GetRequestHandlerDelegateCacheCount(Type handlerType)
 	{
-		var field = typeof(Mediator).GetField("_requestHandlerDelegates", BindingFlags.NonPublic | BindingFlags.Static);
+		var field = typeof(HandlerExecutor).GetField("_requestHandlerDelegates", BindingFlags.NonPublic | BindingFlags.Static);
 		var cache = (ConcurrentDictionary<Type, Func<object, IRequest, CancellationToken, Task>>)field!.GetValue(null)!;
 		return cache.ContainsKey(handlerType) ? 1 : 0;
 	}
 
 	private static int GetRequestHandlerWithResponseDelegateCacheCount(Type handlerType)
 	{
-		var field = typeof(Mediator).GetField("_requestHandlerWithResponseDelegates", BindingFlags.NonPublic | BindingFlags.Static);
+		var field = typeof(HandlerExecutor).GetField("_requestHandlerWithResponseDelegates", BindingFlags.NonPublic | BindingFlags.Static);
 		var cache = (ConcurrentDictionary<Type, Delegate>)field!.GetValue(null)!;
 		return cache.ContainsKey(handlerType) ? 1 : 0;
 	}
 
 	private static int GetNotificationHandlerDelegateCacheCount(Type handlerType)
 	{
-		var field = typeof(Mediator).GetField("_notificationHandlerDelegates", BindingFlags.NonPublic | BindingFlags.Static);
+		var field = typeof(HandlerExecutor).GetField("_notificationHandlerDelegates", BindingFlags.NonPublic | BindingFlags.Static);
 		var cache = (ConcurrentDictionary<Type, Func<object, INotification, CancellationToken, Task>>)field!.GetValue(null)!;
 		return cache.ContainsKey(handlerType) ? 1 : 0;
 	}
