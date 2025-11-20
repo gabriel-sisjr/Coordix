@@ -395,4 +395,50 @@ public class BackgroundWorkerTests
 			Times.Once);
 	}
 
+	[Fact]
+	public async Task ProcessJobAsync_With_InvalidMessageType_Should_Log_Warning()
+	{
+		// Arrange
+		var channel = Channel.CreateUnbounded<BackgroundJob>();
+		var services = new ServiceCollection();
+		services.AddLogging();
+		services.AddCoordix();
+		var serviceProvider = services.BuildServiceProvider();
+
+		var loggerMock = new Mock<ILogger<BackgroundWorker>>();
+		var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+		var worker = new BackgroundWorker(channel.Reader, serviceScopeFactory, loggerMock.Object);
+
+		// Create a job with a message that is neither IRequest nor INotification
+		var invalidMessage = new object(); // Not IRequest or INotification
+		var job = new BackgroundJob
+		{
+			Message = invalidMessage,
+			MessageType = typeof(object),
+			HasResponse = false,
+			ResponseType = null
+		};
+
+		// Act
+		await channel.Writer.WriteAsync(job);
+		var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
+		var task = worker.StartAsync(cts.Token);
+
+		// Wait a bit for processing
+		await Task.Delay(100);
+
+		// Assert - verify warning was logged
+		loggerMock.Verify(
+			x => x.Log(
+				LogLevel.Warning,
+				It.IsAny<EventId>(),
+				It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("neither IRequest nor INotification")),
+				It.IsAny<Exception>(),
+				It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+			Times.AtLeastOnce);
+
+		cts.Cancel();
+		await worker.StopAsync(cts.Token);
+	}
+
 }
