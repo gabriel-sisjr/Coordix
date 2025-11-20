@@ -1,7 +1,4 @@
 using System;
-using System.Collections.Concurrent;
-using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Channels;
@@ -15,24 +12,18 @@ namespace Coordix.Background.Implementation
 {
 	/// <summary>
 	/// Background service that processes enqueued jobs from the channel.
+	/// Uses IHandlerExecutor (registry) to execute handlers, eliminating the need for reflection
+	/// on IMediator methods. This centralizes all handler execution logic in the registry.
+	/// 
+	/// Each background job is processed within its own service scope, ensuring proper lifetime
+	/// management for scoped services (e.g., scoped handlers, DbContext, etc.). The scope is
+	/// created before processing the job and disposed after completion.
 	/// </summary>
 	public class BackgroundWorker : BackgroundService
 	{
 		private readonly ChannelReader<BackgroundJob> _channelReader;
 		private readonly IServiceScopeFactory _serviceScopeFactory;
 		private readonly ILogger<BackgroundWorker> _logger;
-
-		/// <summary>
-		/// Cache for compiled delegates for IMediator.Send&lt;TResponse&gt; method invocations.
-		/// Key: Response type, Value: Compiled delegate for invoking Send.
-		/// </summary>
-		private static readonly ConcurrentDictionary<Type, Delegate> _sendWithResponseDelegates = new ConcurrentDictionary<Type, Delegate>();
-
-		/// <summary>
-		/// Cache for compiled delegates for IMediator.Publish&lt;TNotification&gt; method invocations.
-		/// Key: Notification type, Value: Compiled delegate for invoking Publish.
-		/// </summary>
-		private static readonly ConcurrentDictionary<Type, Delegate> _publishDelegates = new ConcurrentDictionary<Type, Delegate>();
 
 		public BackgroundWorker(
 			ChannelReader<BackgroundJob> channelReader,
@@ -87,15 +78,27 @@ namespace Coordix.Background.Implementation
 			}
 		}
 
+		/// <summary>
+		/// Processes a single background job within its own service scope.
+		/// Creates a new scope, resolves the handler executor (registry) from the scope,
+		/// executes the job, and disposes the scope when done. This ensures proper
+		/// lifetime management for scoped services used by handlers.
+		/// </summary>
+		/// <param name="job">The background job to process.</param>
+		/// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
 		private async Task ProcessJobAsync(BackgroundJob job, CancellationToken cancellationToken)
 		{
-			// Create a scope for this job to ensure proper lifetime management
-			// This allows handlers registered as scoped to work correctly
+			// Create a new service scope for this job
+			// This ensures that scoped services (handlers, DbContext, etc.) are properly
+			// scoped to the lifetime of this job and disposed when the job completes
 			using var scope = _serviceScopeFactory.CreateScope();
-			var mediator = scope.ServiceProvider.GetService<IMediator>();
-			if (mediator == null)
+
+			// Resolve the handler executor (registry) from the scope
+			// The executor and all handlers it resolves will be scoped to this job
+			var handlerExecutor = scope.ServiceProvider.GetService<IHandlerExecutor>();
+			if (handlerExecutor == null)
 			{
-				_logger.LogError("IMediator not found in service provider");
+				_logger.LogError("IHandlerExecutor not found in service provider");
 				return;
 			}
 
@@ -103,24 +106,26 @@ namespace Coordix.Background.Implementation
 
 			try
 			{
+				// Execute the job using the handler executor
+				// All handler resolution and execution happens within this scope
 				if (job.HasResponse && job.ResponseType != null)
 				{
-					// Request with response - use cached delegate to avoid reflection overhead
-					var sendDelegate = GetSendWithResponseDelegate(job.ResponseType);
-					var task = sendDelegate(mediator, job.Message, cancellationToken);
-					await task;
+					// Request with response - execute using the registry
+					await ExecuteRequestHandlerWithResponse(handlerExecutor, job.Message, job.ResponseType, cancellationToken);
 				}
 				else if (job.Message is IRequest request)
 				{
-					// Request without response
-					await mediator.Send(request, cancellationToken);
+					// Request without response - execute using the registry
+					await handlerExecutor.ExecuteRequestHandler(request, cancellationToken);
 				}
 				else if (job.Message is INotification notification)
 				{
-					// Notification - use cached delegate to avoid reflection overhead
-					var publishDelegate = GetPublishDelegate(job.MessageType);
-					var task = publishDelegate(mediator, notification, cancellationToken);
-					await task;
+					// Notification - execute using the registry
+					await ExecuteNotificationHandler(handlerExecutor, notification, job.MessageType, cancellationToken);
+				}
+				else
+				{
+					_logger.LogWarning("Background job message is neither IRequest nor INotification: {MessageType}", job.MessageType.Name);
 				}
 
 				_logger.LogDebug("Background job processed successfully: {MessageType}", job.MessageType.Name);
@@ -130,104 +135,71 @@ namespace Coordix.Background.Implementation
 				_logger.LogError(ex, "Error processing background job: {MessageType}", job.MessageType.Name);
 				throw; // Re-throw to be caught by the outer try-catch
 			}
+			// Scope is automatically disposed here via 'using', cleaning up all scoped services
 		}
 
 		/// <summary>
-		/// Gets or creates a cached delegate for invoking IMediator.Send&lt;TResponse&gt;.
-		/// This avoids reflection overhead on every job processing.
+		/// Executes a request handler with response using the handler executor.
+		/// Uses reflection only to call the generic method with the runtime response type.
 		/// </summary>
+		/// <param name="handlerExecutor">The handler executor to use.</param>
+		/// <param name="request">The request message.</param>
 		/// <param name="responseType">The response type.</param>
-		/// <returns>A compiled delegate for invoking Send.</returns>
-		private static Func<IMediator, object, CancellationToken, Task> GetSendWithResponseDelegate(Type responseType)
+		/// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+		private static async Task ExecuteRequestHandlerWithResponse(
+			IHandlerExecutor handlerExecutor,
+			object request,
+			Type responseType,
+			CancellationToken cancellationToken)
 		{
-			return (Func<IMediator, object, CancellationToken, Task>)_sendWithResponseDelegates.GetOrAdd(
-				responseType,
-				CreateSendWithResponseDelegate);
-		}
+			// Get the generic method ExecuteRequestHandler<TResponse>
+			var method = typeof(IHandlerExecutor).GetMethod(
+				nameof(IHandlerExecutor.ExecuteRequestHandler),
+				new Type[] { typeof(IRequest<>).MakeGenericType(responseType), typeof(CancellationToken) });
 
-		/// <summary>
-		/// Creates a strongly-typed delegate for invoking IMediator.Send&lt;TResponse&gt;.
-		/// Uses Expression Trees to compile a delegate that directly invokes the Send method,
-		/// avoiding the overhead of MethodInfo.Invoke on every call.
-		/// </summary>
-		/// <param name="responseType">The response type.</param>
-		/// <returns>A compiled delegate that can invoke Send.</returns>
-		private static Func<IMediator, object, CancellationToken, Task> CreateSendWithResponseDelegate(Type responseType)
-		{
-			var sendMethod = typeof(IMediator).GetMethods()
-				.FirstOrDefault(m =>
-					m.Name == nameof(IMediator.Send) &&
-					m.IsGenericMethod &&
-					m.GetParameters().Length == 2 &&
-					m.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == typeof(IRequest<>) &&
-					m.GetParameters()[1].ParameterType == typeof(CancellationToken));
-
-			if (sendMethod == null)
+			if (method == null)
 			{
-				throw new InvalidOperationException($"IMediator.Send method for IRequest<{responseType.Name}> not found.");
+				throw new InvalidOperationException($"IHandlerExecutor.ExecuteRequestHandler method for response type {responseType.Name} not found.");
 			}
 
-			var genericMethod = sendMethod.MakeGenericMethod(responseType);
-			var mediatorParam = Expression.Parameter(typeof(IMediator), "mediator");
-			var messageParam = Expression.Parameter(typeof(object), "message");
-			var cancellationTokenParam = Expression.Parameter(typeof(CancellationToken), "cancellationToken");
+			// Make the generic method with the response type
+			var genericMethod = method.MakeGenericMethod(responseType);
 
-			// Cast message to IRequest<TResponse>
-			var requestType = typeof(IRequest<>).MakeGenericType(responseType);
-			var castMessage = Expression.Convert(messageParam, requestType);
-			var call = Expression.Call(mediatorParam, genericMethod, castMessage, cancellationTokenParam);
-			var lambda = Expression.Lambda<Func<IMediator, object, CancellationToken, Task>>(
-				call, mediatorParam, messageParam, cancellationTokenParam);
-
-			return lambda.Compile();
+			// Invoke the method
+			var task = (Task)genericMethod.Invoke(handlerExecutor, new object[] { request, cancellationToken })!;
+			await task;
 		}
 
 		/// <summary>
-		/// Gets or creates a cached delegate for invoking IMediator.Publish&lt;TNotification&gt;.
-		/// This avoids reflection overhead on every job processing.
+		/// Executes a notification handler using the handler executor.
+		/// Uses reflection only to call the generic method with the runtime notification type.
 		/// </summary>
+		/// <param name="handlerExecutor">The handler executor to use.</param>
+		/// <param name="notification">The notification message.</param>
 		/// <param name="notificationType">The notification type.</param>
-		/// <returns>A compiled delegate for invoking Publish.</returns>
-		private static Func<IMediator, object, CancellationToken, Task> GetPublishDelegate(Type notificationType)
+		/// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+		private static async Task ExecuteNotificationHandler(
+			IHandlerExecutor handlerExecutor,
+			INotification notification,
+			Type notificationType,
+			CancellationToken cancellationToken)
 		{
-			return (Func<IMediator, object, CancellationToken, Task>)_publishDelegates.GetOrAdd(
-				notificationType,
-				CreatePublishDelegate);
-		}
+			// Get the generic method ExecuteNotificationHandler<TNotification>
+			var method = typeof(IHandlerExecutor).GetMethod(
+				nameof(IHandlerExecutor.ExecuteNotificationHandler),
+				new Type[] { notificationType, typeof(CancellationToken) });
 
-		/// <summary>
-		/// Creates a strongly-typed delegate for invoking IMediator.Publish&lt;TNotification&gt;.
-		/// Uses Expression Trees to compile a delegate that directly invokes the Publish method,
-		/// avoiding the overhead of MethodInfo.Invoke on every call.
-		/// </summary>
-		/// <param name="notificationType">The notification type.</param>
-		/// <returns>A compiled delegate that can invoke Publish.</returns>
-		private static Func<IMediator, object, CancellationToken, Task> CreatePublishDelegate(Type notificationType)
-		{
-			var publishMethod = typeof(IMediator).GetMethods()
-				.FirstOrDefault(m =>
-					m.Name == nameof(IMediator.Publish) &&
-					m.IsGenericMethod &&
-					m.GetParameters().Length == 2 &&
-					m.GetParameters()[1].ParameterType == typeof(CancellationToken));
-
-			if (publishMethod == null)
+			if (method == null)
 			{
-				throw new InvalidOperationException($"IMediator.Publish method for {notificationType.Name} not found.");
+				throw new InvalidOperationException($"IHandlerExecutor.ExecuteNotificationHandler method for notification type {notificationType.Name} not found.");
 			}
 
-			var genericMethod = publishMethod.MakeGenericMethod(notificationType);
-			var mediatorParam = Expression.Parameter(typeof(IMediator), "mediator");
-			var notificationParam = Expression.Parameter(typeof(object), "notification");
-			var cancellationTokenParam = Expression.Parameter(typeof(CancellationToken), "cancellationToken");
+			// Make the generic method with the notification type
+			var genericMethod = method.MakeGenericMethod(notificationType);
 
-			// Cast notification to INotification
-			var castNotification = Expression.Convert(notificationParam, notificationType);
-			var call = Expression.Call(mediatorParam, genericMethod, castNotification, cancellationTokenParam);
-			var lambda = Expression.Lambda<Func<IMediator, object, CancellationToken, Task>>(
-				call, mediatorParam, notificationParam, cancellationTokenParam);
-
-			return lambda.Compile();
+			// Invoke the method
+			var task = (Task)genericMethod.Invoke(handlerExecutor, new object[] { notification, cancellationToken })!;
+			await task;
 		}
 	}
 }

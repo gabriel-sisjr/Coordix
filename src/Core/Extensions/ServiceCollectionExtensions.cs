@@ -27,11 +27,12 @@ namespace Coordix.Extensions
 				=> AddCoordix(services, args);
 
 		/// <summary>
-		/// Registers the core Mediator implementation, and scans the specified assemblies for
-		/// implementations of notification and request handler interfaces, registering them as transient services.
+		/// Registers the core Coordix services including IHandlerExecutor (registry) and IMediator,
+		/// and scans the specified assemblies for implementations of notification and request handler
+		/// interfaces, registering them as transient services.
 		/// </summary>
 		/// <param name="services">
-		/// The <see cref="IServiceCollection"/> to which the mediator and handlers will be added.
+		/// The <see cref="IServiceCollection"/> to which the mediator, handler executor, and handlers will be added.
 		/// </param>
 		/// <param name="args">
 		/// Optional parameters to control which assemblies are scanned—either none, an array of <see cref="Assembly"/>,
@@ -40,14 +41,24 @@ namespace Coordix.Extensions
 		/// <returns>
 		/// The same <see cref="IServiceCollection"/> instance, to allow chaining.
 		/// </returns>
+		/// <remarks>
+		/// Registration order:
+		/// 1. IHandlerExecutor (registry) - registered as singleton, centralizes all handler execution logic
+		/// 2. IMediator - registered as singleton, depends on IHandlerExecutor
+		/// 3. Handler implementations - registered as transient, discovered via assembly scanning
+		/// </remarks>
 		public static IServiceCollection AddCoordix(this IServiceCollection services, params object[] args)
 		{
 			var assemblies = ResolveAssemblies(args);
 
-			// Register HandlerExecutor first (used by Mediator)
+			// Register HandlerExecutor (registry) first - this centralizes all handler execution logic
+			// including reflection, caching, and invocation. Registered as singleton to share caches.
 			services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
+
+			// Register Mediator - depends on IHandlerExecutor via constructor injection
 			services.AddSingleton<IMediator, Mediator>();
 
+			// Register discovered handlers as transient services
 			RegisterHandlers(services, assemblies, typeof(INotificationHandler<>));
 			RegisterHandlers(services, assemblies, typeof(IRequestHandler<,>));
 			RegisterHandlers(services, assemblies, typeof(IRequestHandler<>));

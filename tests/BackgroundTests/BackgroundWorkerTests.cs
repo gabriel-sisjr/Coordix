@@ -134,13 +134,13 @@ public class BackgroundWorkerTests
 	}
 
 	[Fact]
-	public async Task ProcessJobAsync_When_IMediator_Not_Found_Should_Log_Error_And_Return()
+	public async Task ProcessJobAsync_When_IHandlerExecutor_Not_Found_Should_Log_Error_And_Return()
 	{
 		// Arrange
 		var channel = Channel.CreateUnbounded<BackgroundJob>();
 		var services = new ServiceCollection();
 		services.AddLogging();
-		// Note: Not adding Coordix, so IMediator won't be available
+		// Note: Not adding Coordix, so IHandlerExecutor won't be available
 		var serviceProvider = services.BuildServiceProvider();
 		var serviceScopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
 
@@ -167,7 +167,7 @@ public class BackgroundWorkerTests
 			x => x.Log(
 				LogLevel.Error,
 				It.IsAny<EventId>(),
-				It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("IMediator not found")),
+				It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("IHandlerExecutor not found")),
 				It.IsAny<Exception>(),
 				It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
 			Times.AtLeastOnce);
@@ -354,8 +354,8 @@ public class BackgroundWorkerTests
 		cts.Cancel();
 		await worker.StopAsync(cts.Token);
 
-		// Note: Testing the else branch for publishMethod being null is difficult without
-		// breaking the IMediator interface, which would require more complex mocking
+		// Note: Testing the else branch for method being null is difficult without
+		// breaking the IHandlerExecutor interface, which would require more complex mocking
 	}
 
 	[Fact]
