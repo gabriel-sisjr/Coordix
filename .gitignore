@@ -402,3 +402,10 @@ FodyWeavers.xsd
 *.sln.iml
 .idea/
 .DS_Store
+
+# Temporary files and reports
+PR_DESCRIPTION.md
+COVERAGE_*.md
+CoverageReport/
+TestResults/
+analyze_coverage.py
