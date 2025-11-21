@@ -1,0 +1,84 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<RootNamespace>Coordix.CodeGen</RootNamespace>
+		<AssemblyName>Coordix.CodeGen</AssemblyName>
+		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+
+		<!-- NuGet Package properties -->
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<PackageId>Coordix.CodeGen</PackageId>
+		<Version>0.1.0</Version>
+		<Authors>Gabriel Santana</Authors>
+		<Title>Coordix.CodeGen</Title>
+		<Description>Source generator for Coordix mediator library that generates optimized handler execution code at compile-time, eliminating reflection overhead. Requires Coordix package.</Description>
+		<PackageDescription>Source generator extension for Coordix mediator. This package extends Coordix core with compile-time code generation capabilities for zero-reflection handler execution. Requires Coordix package to be installed.</PackageDescription>
+		<PackageTags>Coordix, Mediator, SourceGenerator, CodeGen, Performance, Roslyn</PackageTags>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageProjectUrl>https://github.com/gabriel-sisjr/Coordix</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/gabriel-sisjr/Coordix</RepositoryUrl>
+		<RepositoryType>Public</RepositoryType>
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+	</PropertyGroup>
+
+	<!-- Source Generator specific properties (only for netstandard2.0) -->
+	<PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+		<IsRoslynComponent>true</IsRoslynComponent>
+		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+	</PropertyGroup>
+
+	<!-- Remove all default Compile items, then add back conditionally -->
+	<ItemGroup>
+		<Compile Remove="**\*.cs" />
+	</ItemGroup>
+
+	<!-- netstandard2.0: generator files + common -->
+	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+		<Compile Include="CoordixSourceGenerator.cs" />
+		<Compile Include="HandlerInfo.cs" />
+	</ItemGroup>
+
+	<!-- netstandard2.1: generator files (for test reference) + extensions + common -->
+	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+		<Compile Include="CoordixSourceGenerator.cs" />
+		<Compile Include="HandlerInfo.cs" />
+		<Compile Include="Extensions\**\*.cs" />
+	</ItemGroup>
+
+	<!-- Package: analyzer DLL (netstandard2.0) in the analyzers path, runtime DLL (netstandard2.1) in lib path -->
+	<ItemGroup>
+		<None Include="bin\Release\netstandard2.0\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+	</ItemGroup>
+
+	<!-- Allow the project to function as an analyzer when referenced directly -->
+	<PropertyGroup>
+		<GetTargetPathDependsOn>$(GetTargetPathDependsOn);GetDependencyTargetPaths</GetTargetPathDependsOn>
+	</PropertyGroup>
+
+	<Target Name="GetDependencyTargetPaths">
+		<ItemGroup>
+			<TargetPathWithTargetPlatformMoniker Include="$(TargetPath)" IncludeRuntimeDependency="false" />
+		</ItemGroup>
+	</Target>
+
+	<!-- Roslyn dependencies (for both targets, but PrivateAssets for packaging) -->
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.0" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+	</ItemGroup>
+
+	<!-- Core dependency (only for netstandard2.1 - runtime extensions) -->
+	<!-- When packing, this will be converted to a PackageReference to Coordix -->
+	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+		<ProjectReference Include="..\Core\Core.csproj">
+			<PrivateAssets>none</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+		</ProjectReference>
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+	</ItemGroup>
+
+</Project>
