@@ -41,7 +41,7 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 	{
 		// Quick syntactic filter: class declaration with base list
 		return node is ClassDeclarationSyntax { BaseList: not null } classDecl
-					 && !classDecl.Modifiers.Any(SyntaxKind.AbstractKeyword);
+			&& !classDecl.Modifiers.Any(SyntaxKind.AbstractKeyword);
 	}
 
 	private static INamedTypeSymbol? GetSemanticTarget(GeneratorSyntaxContext context)
@@ -62,7 +62,7 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 
 		// Filter: must not be generic (open generic types can't be instantiated)
 		if (namedType.IsGenericType && !namedType.IsUnboundGenericType &&
-				namedType.TypeArguments.Any(t => t.Kind == SymbolKind.TypeParameter))
+			namedType.TypeArguments.Any(t => t.Kind == SymbolKind.TypeParameter))
 		{
 			return null;
 		}
@@ -88,8 +88,8 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 			string originalDef = iface.OriginalDefinition.ToDisplayString();
 
 			if (originalDef == IRequestHandlerWithResponseFullName ||
-					originalDef == IRequestHandlerWithoutResponseFullName ||
-					originalDef == INotificationHandlerFullName)
+				originalDef == IRequestHandlerWithoutResponseFullName ||
+				originalDef == INotificationHandlerFullName)
 			{
 				return true;
 			}
