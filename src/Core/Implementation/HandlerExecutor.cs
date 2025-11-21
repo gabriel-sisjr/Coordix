@@ -66,7 +66,7 @@ namespace Coordix.Implementation
                 throw new InvalidOperationException($"Handler not found for {requestType.Name}");
             }
 
-            TResponse? response = await InvokeRequestHandlerWithResponse<TResponse>(handlerType, handler, request, cancellationToken);
+            TResponse response = await InvokeRequestHandlerWithResponse<TResponse>(handlerType, handler, request, cancellationToken);
             return response;
         }
 
