@@ -51,7 +51,7 @@ jobs:
       - name: Read version from project file
         id: read_version
         run: |
-          VERSION=$(grep '<Version>' src/Coordix/Coordix.csproj | sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p')
+          VERSION=$(grep '<Version>' src/Core/Core.csproj | sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p')
           echo "base_version=$VERSION" >> $GITHUB_OUTPUT
           echo "Base version: $VERSION"
 
@@ -105,12 +105,14 @@ jobs:
 
           echo "Final package version: $PACKAGE_VERSION"
 
-      - name: Update version in project file
+      - name: Update version in project files
         if: steps.package_version.outputs.should_publish == 'true'
         run: |
           PACKAGE_VERSION="${{ steps.package_version.outputs.package_version }}"
-          sed -i "s|<Version>.*</Version>|<Version>$PACKAGE_VERSION</Version>|" src/Coordix/Coordix.csproj
-          echo "Updated version to: $PACKAGE_VERSION"
+          sed -i "s|<Version>.*</Version>|<Version>$PACKAGE_VERSION</Version>|" src/Core/Core.csproj
+          sed -i "s|<Version>.*</Version>|<Version>$PACKAGE_VERSION</Version>|" src/Background/Background.csproj
+          sed -i "s|<Version>.*</Version>|<Version>$PACKAGE_VERSION</Version>|" src/CodeGen/CodeGen.csproj
+          echo "Updated version to: $PACKAGE_VERSION in all projects"
 
       - name: Restore dependencies
         run: dotnet restore
