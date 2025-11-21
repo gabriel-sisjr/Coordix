@@ -87,11 +87,16 @@ jobs:
       - name: Verify .NET version
         run: dotnet --version
 
-      - name: Verify SDK version matches global.json
+      - name: Create global.json for formatting
+        run: |
+          echo '{"sdk":{"version":"8.0.416","rollForward":"disable"}}' > global.json
+          cat global.json
+
+      - name: Verify SDK version
         run: |
           EXPECTED_VERSION="8.0.416"
           ACTUAL_VERSION=$(dotnet --version)
-          if [[ "$ACTUAL_VERSION" != "$EXPECTED_VERSION"* ]]; then
+          if [[ "$ACTUAL_VERSION" != "$EXPECTED_VERSION" ]]; then
             echo "Error: Expected .NET SDK $EXPECTED_VERSION, but got $ACTUAL_VERSION"
             exit 1
           fi
