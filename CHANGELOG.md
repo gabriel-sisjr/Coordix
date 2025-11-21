@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [Coordix.CodeGen 0.1.0] - 2025-11-21
+
+### Added
+
+- **Source Generator (`Coordix.CodeGen`)**: New package that generates compile-time handler executors, eliminating reflection overhead entirely
+  - `CoordixSourceGenerator`: Roslyn incremental source generator that discovers handlers at compile-time
+  - `GeneratedHandlerExecutor`: Auto-generated `IHandlerExecutor` implementation with zero reflection
+  - Multi-targeting support (netstandard2.0 for analyzer, netstandard2.1 for runtime extensions)
+  - Automatic discovery of `IRequestHandler<TRequest, TResponse>`, `IRequestHandler<TRequest>`, and `INotificationHandler<TNotification>`
+  - Generates strongly-typed handler resolution and invocation code
+- **DI Integration for CodeGen**:
+  - `AddCoordixWithCodeGen()` extension method for seamless integration
+  - Automatically replaces reflection-based `HandlerExecutor` with generated version
+  - Support for `HandlerResolutionMode.CodeGenPreferred` configuration
+  - Runtime discovery of generated executor types
+- **CodeGen Sample Application**: Comprehensive sample demonstrating zero-reflection execution
+  - Example requests with and without responses
+  - Example notification handlers
+  - Performance comparison setup
+- **CodeGen Unit Tests**: 7 comprehensive tests covering all handler types and scenarios
+
+### Performance
+
+- **Zero Runtime Reflection**: Generated code uses direct type-safe calls instead of `MethodInfo.Invoke()`
+- **Compile-Time Optimization**: All handler discovery happens during build, not at runtime
+- **Reduced Startup Time**: No reflection scanning or expression tree compilation at startup
+- **Better JIT Optimization**: Strongly-typed code allows better inlining and optimization
+
+### Documentation
+
+- CodeGen-specific README with installation and usage instructions
+- Sample application demonstrating all features
+- Integration guide with existing Coordix applications
+
 ## [0.2.0] - 2025-11-20
 
 ### Added

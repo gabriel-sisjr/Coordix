@@ -121,10 +121,29 @@ jobs:
       - name: Run tests
         run: dotnet test --configuration Release --no-build --verbosity normal
 
-      - name: Pack
+      - name: Pack Coordix (Core)
         if: steps.package_version.outputs.should_publish == 'true'
         run: |
-          dotnet pack src/Coordix/Coordix.csproj --configuration Release --no-build --output ./artifacts
+          dotnet pack src/Core/Core.csproj --configuration Release --no-build --output ./artifacts
+          echo "✅ Coordix (Core) packed"
+
+      - name: Pack Coordix.Background
+        if: steps.package_version.outputs.should_publish == 'true'
+        run: |
+          dotnet pack src/Background/Background.csproj --configuration Release --no-build --output ./artifacts
+          echo "✅ Coordix.Background packed"
+
+      - name: Pack Coordix.CodeGen
+        if: steps.package_version.outputs.should_publish == 'true'
+        run: |
+          dotnet pack src/CodeGen/CodeGen.csproj --configuration Release --no-build --output ./artifacts
+          echo "✅ Coordix.CodeGen packed"
+
+      - name: List packed artifacts
+        if: steps.package_version.outputs.should_publish == 'true'
+        run: |
+          echo "📦 Packed artifacts:"
+          ls -lh ./artifacts/*.nupkg
 
       - name: Publish to NuGet
         if: steps.package_version.outputs.should_publish == 'true'

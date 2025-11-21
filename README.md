@@ -98,6 +98,14 @@ dotnet add package Coordix
 dotnet add package Coordix.Background
 ```
 
+**Coordix.CodeGen** - Source generator for compile-time handler execution (zero reflection overhead)
+
+```bash
+dotnet add package Coordix.CodeGen
+```
+
+> **Performance Boost**: The CodeGen package eliminates all runtime reflection by generating handler execution code at compile-time. This results in faster startup times and better runtime performance.
+
 > **Note**: `Coordix.Background` requires `Coordix` to be installed. It will be automatically installed as a dependency.
 
 ## Getting Started
@@ -317,6 +325,72 @@ Coordix is designed with performance in mind. Here's how it achieves high perfor
 - **Scalability**: Performance improvements become more significant as handler invocation frequency increases
 
 For detailed performance information, see the [Performance Guide](./docs/performance.md).
+
+### Zero-Reflection CodeGen (Coordix.CodeGen)
+
+For maximum performance, install the `Coordix.CodeGen` package which eliminates **all** runtime reflection by generating handler execution code at compile-time:
+
+```bash
+dotnet add package Coordix.CodeGen
+```
+
+#### Usage
+
+Replace `AddCoordix()` with `AddCoordixWithCodeGen()`:
+
+```csharp
+using Coordix.CodeGen.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Use code-generated executor (zero reflection)
+builder.Services.AddCoordixWithCodeGen(typeof(Program).Assembly);
+
+var app = builder.Build();
+```
+
+#### How It Works
+
+1. **Compile-Time**: The source generator discovers all handlers during build
+2. **Code Generation**: Generates a `GeneratedHandlerExecutor` with direct, strongly-typed calls
+3. **Runtime**: Uses the generated executor instead of reflection-based one
+
+#### Performance Impact
+
+- ✅ **Zero runtime reflection** - All handler calls are direct method invocations
+- ✅ **Faster startup** - No expression tree compilation at runtime
+- ✅ **Better JIT optimization** - Strongly-typed code allows inlining and optimization
+- ✅ **Reduced memory** - No cached delegates or MethodInfo instances
+
+#### Example Generated Code
+
+Input (your handler):
+```csharp
+public class GetUserHandler : IRequestHandler<GetUserRequest, UserDto>
+{
+    public async Task<UserDto> Handle(GetUserRequest request, CancellationToken ct)
+        => await _repository.GetByIdAsync(request.UserId);
+}
+```
+
+Generated (by Coordix.CodeGen):
+```csharp
+public async Task<TResponse> ExecuteRequestHandler<TResponse>(
+    IRequest<TResponse> request, CancellationToken ct)
+{
+    if (request is GetUserRequest typedRequest)
+    {
+        var handler = _provider.GetRequiredService<IRequestHandler<GetUserRequest, UserDto>>();
+        var result = await handler.Handle(typedRequest, ct);
+        return (TResponse)(object)result;
+    }
+    // ... other handlers
+}
+```
+
+**No reflection, no dynamic invocation - just direct method calls!**
+
+For more details, see the [CodeGen documentation](./samples/CodeGenSample/README.md).
 
 ## Documentation
 
