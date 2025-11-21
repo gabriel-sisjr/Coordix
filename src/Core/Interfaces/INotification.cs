@@ -1,4 +1,4 @@
 namespace Coordix.Interfaces
 {
-	public interface INotification { }
+    public interface INotification { }
 }
