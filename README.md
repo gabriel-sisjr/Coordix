@@ -365,6 +365,7 @@ var app = builder.Build();
 #### Example Generated Code
 
 Input (your handler):
+
 ```csharp
 public class GetUserHandler : IRequestHandler<GetUserRequest, UserDto>
 {
@@ -374,6 +375,7 @@ public class GetUserHandler : IRequestHandler<GetUserRequest, UserDto>
 ```
 
 Generated (by Coordix.CodeGen):
+
 ```csharp
 public async Task<TResponse> ExecuteRequestHandler<TResponse>(
     IRequest<TResponse> request, CancellationToken ct)

@@ -68,13 +68,17 @@ internal readonly struct HandlerInfo : IEquatable<HandlerInfo>
 
 	public override int GetHashCode()
 	{
+		// Use a prime number for hash combining to reduce collisions
+		// 397 is commonly used in .NET hash algorithms (e.g., string.GetHashCode)
+		const int HashMultiplier = 397;
+
 		unchecked
 		{
 			var hashCode = HandlerTypeName.GetHashCode();
-			hashCode = (hashCode * 397) ^ HandlerNamespace.GetHashCode();
-			hashCode = (hashCode * 397) ^ (int)Kind;
-			hashCode = (hashCode * 397) ^ RequestOrNotificationType.GetHashCode();
-			hashCode = (hashCode * 397) ^ (ResponseType?.GetHashCode() ?? 0);
+			hashCode = (hashCode * HashMultiplier) ^ HandlerNamespace.GetHashCode();
+			hashCode = (hashCode * HashMultiplier) ^ (int)Kind;
+			hashCode = (hashCode * HashMultiplier) ^ RequestOrNotificationType.GetHashCode();
+			hashCode = (hashCode * HashMultiplier) ^ (ResponseType?.GetHashCode() ?? 0);
 			return hashCode;
 		}
 	}
