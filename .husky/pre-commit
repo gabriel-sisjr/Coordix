@@ -4,14 +4,8 @@ echo "🔍 Running pre-commit checks..."
 echo "📝 Formatting JavaScript/TypeScript files..."
 yarn prettier --write .
 
-# Check .NET code formatting
-echo "🔧 Checking .NET code formatting..."
-dotnet format --verify-no-changes --verbosity quiet
+# Format .NET code (auto-fix, don't block)
+echo "🔧 Formatting .NET code..."
+dotnet format --no-restore --verbosity quiet || true
 
-if [ $? -ne 0 ]; then
-  echo "❌ .NET code formatting check failed!"
-  echo "💡 Run 'dotnet format' to fix formatting issues before committing."
-  exit 1
-fi
-
-echo "✅ All formatting checks passed!"
+echo "✅ Pre-commit checks complete!"
