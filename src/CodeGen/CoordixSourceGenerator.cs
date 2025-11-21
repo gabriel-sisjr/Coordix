@@ -23,14 +23,15 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 	public void Initialize(IncrementalGeneratorInitializationContext context)
 	{
 		// Filter candidate class declarations that might be handlers
-		var candidateClasses = context.SyntaxProvider
+		IncrementalValuesProvider<INamedTypeSymbol?> candidateClasses = context.SyntaxProvider
 			.CreateSyntaxProvider(
-				predicate: static (node, _) => IsCandidateClass(node),
-				transform: static (ctx, _) => GetSemanticTarget(ctx))
+				static (node, _) => IsCandidateClass(node),
+				static (ctx, _) => GetSemanticTarget(ctx))
 			.Where(static m => m is not null);
 
 		// Combine with compilation to access symbol information
-		var compilationAndClasses = context.CompilationProvider.Combine(candidateClasses.Collect());
+		IncrementalValueProvider<(Compilation Left, ImmutableArray<INamedTypeSymbol?> Right)> compilationAndClasses =
+			context.CompilationProvider.Combine(candidateClasses.Collect());
 
 		// Register source output
 		context.RegisterSourceOutput(compilationAndClasses, (spc, source) => Execute(source.Left, source.Right!, spc));
@@ -40,13 +41,13 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 	{
 		// Quick syntactic filter: class declaration with base list
 		return node is ClassDeclarationSyntax { BaseList: not null } classDecl
-				 && !classDecl.Modifiers.Any(SyntaxKind.AbstractKeyword);
+					 && !classDecl.Modifiers.Any(SyntaxKind.AbstractKeyword);
 	}
 
 	private static INamedTypeSymbol? GetSemanticTarget(GeneratorSyntaxContext context)
 	{
 		var classDecl = (ClassDeclarationSyntax)context.Node;
-		var symbol = context.SemanticModel.GetDeclaredSymbol(classDecl);
+		INamedTypeSymbol? symbol = context.SemanticModel.GetDeclaredSymbol(classDecl);
 
 		if (symbol is not INamedTypeSymbol namedType)
 		{
@@ -60,7 +61,8 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 		}
 
 		// Filter: must not be generic (open generic types can't be instantiated)
-		if (namedType.IsGenericType && !namedType.IsUnboundGenericType && namedType.TypeArguments.Any(t => t.Kind == SymbolKind.TypeParameter))
+		if (namedType.IsGenericType && !namedType.IsUnboundGenericType &&
+				namedType.TypeArguments.Any(t => t.Kind == SymbolKind.TypeParameter))
 		{
 			return null;
 		}
@@ -76,18 +78,18 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 
 	private static bool ImplementsCoordixHandlerInterface(INamedTypeSymbol type)
 	{
-		foreach (var iface in type.AllInterfaces)
+		foreach (INamedTypeSymbol? iface in type.AllInterfaces)
 		{
 			if (!iface.IsGenericType)
 			{
 				continue;
 			}
 
-			var originalDef = iface.OriginalDefinition.ToDisplayString();
+			string originalDef = iface.OriginalDefinition.ToDisplayString();
 
 			if (originalDef == IRequestHandlerWithResponseFullName ||
-				originalDef == IRequestHandlerWithoutResponseFullName ||
-				originalDef == INotificationHandlerFullName)
+					originalDef == IRequestHandlerWithoutResponseFullName ||
+					originalDef == INotificationHandlerFullName)
 			{
 				return true;
 			}
@@ -96,7 +98,8 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 		return false;
 	}
 
-	private static void Execute(Compilation compilation, ImmutableArray<INamedTypeSymbol?> classes, SourceProductionContext context)
+	private static void Execute(Compilation compilation, ImmutableArray<INamedTypeSymbol?> classes,
+		SourceProductionContext context)
 	{
 		if (classes.IsDefaultOrEmpty)
 		{
@@ -105,27 +108,27 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 
 		var handlers = new List<HandlerInfo>();
 
-		foreach (var handlerSymbol in classes)
+		foreach (INamedTypeSymbol? handlerSymbol in classes)
 		{
 			if (handlerSymbol is null)
 			{
 				continue;
 			}
 
-			foreach (var iface in handlerSymbol.AllInterfaces)
+			foreach (INamedTypeSymbol? iface in handlerSymbol.AllInterfaces)
 			{
 				if (!iface.IsGenericType)
 				{
 					continue;
 				}
 
-				var originalDef = iface.OriginalDefinition.ToDisplayString();
+				string originalDef = iface.OriginalDefinition.ToDisplayString();
 
 				if (originalDef == IRequestHandlerWithResponseFullName)
 				{
 					// IRequestHandler<TRequest, TResponse>
-					var requestType = iface.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-					var responseType = iface.TypeArguments[1].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+					string requestType = iface.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+					string responseType = iface.TypeArguments[1].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
 					handlers.Add(new HandlerInfo(
 						handlerSymbol.Name,
@@ -137,7 +140,7 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 				else if (originalDef == IRequestHandlerWithoutResponseFullName)
 				{
 					// IRequestHandler<TRequest>
-					var requestType = iface.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+					string requestType = iface.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
 					handlers.Add(new HandlerInfo(
 						handlerSymbol.Name,
@@ -148,7 +151,7 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 				else if (originalDef == INotificationHandlerFullName)
 				{
 					// INotificationHandler<TNotification>
-					var notificationType = iface.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+					string notificationType = iface.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
 					handlers.Add(new HandlerInfo(
 						handlerSymbol.Name,
@@ -165,7 +168,7 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 		}
 
 		// Generate the HandlerExecutor code
-		var sourceText = GenerateHandlerExecutor(handlers);
+		string sourceText = GenerateHandlerExecutor(handlers);
 		context.AddSource("GeneratedHandlerExecutor.g.cs", SourceText.From(sourceText, Encoding.UTF8));
 	}
 
@@ -184,12 +187,12 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 		sb.AppendLine();
 
 		// Collect unique namespaces from handlers
-		var namespaces = handlers
+		IOrderedEnumerable<string> namespaces = handlers
 			.Select(h => h.HandlerNamespace)
 			.Distinct()
 			.OrderBy(ns => ns);
 
-		foreach (var ns in namespaces)
+		foreach (string? ns in namespaces)
 		{
 			sb.AppendLine($"using {ns};");
 		}
@@ -234,7 +237,8 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 			.Where(h => h.Kind == HandlerKind.RequestWithResponse)
 			.ToList();
 
-		sb.AppendLine("\t\tpublic async Task<TResponse> ExecuteRequestHandler<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)");
+		sb.AppendLine(
+			"\t\tpublic async Task<TResponse> ExecuteRequestHandler<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)");
 		sb.AppendLine("\t\t{");
 		sb.AppendLine("\t\t\tvar requestType = request.GetType();");
 		sb.AppendLine();
@@ -243,12 +247,13 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 		{
 			for (int i = 0; i < requestsWithResponse.Count; i++)
 			{
-				var handler = requestsWithResponse[i];
-				var ifKeyword = i == 0 ? "if" : "else if";
+				HandlerInfo handler = requestsWithResponse[i];
+				string ifKeyword = i == 0 ? "if" : "else if";
 
 				sb.AppendLine($"\t\t\t{ifKeyword} (requestType == typeof({handler.RequestOrNotificationType}))");
 				sb.AppendLine("\t\t\t{");
-				sb.AppendLine($"\t\t\t\tvar handler = _provider.GetRequiredService<Coordix.Interfaces.IRequestHandler<{handler.RequestOrNotificationType}, {handler.ResponseType}>>();");
+				sb.AppendLine(
+					$"\t\t\t\tvar handler = _provider.GetRequiredService<Coordix.Interfaces.IRequestHandler<{handler.RequestOrNotificationType}, {handler.ResponseType}>>();");
 				sb.AppendLine($"\t\t\t\tvar typedRequest = ({handler.RequestOrNotificationType})request;");
 				sb.AppendLine($"\t\t\t\tvar result = await handler.Handle(typedRequest, cancellationToken);");
 				sb.AppendLine($"\t\t\t\treturn (TResponse)(object)result!;");
@@ -274,7 +279,8 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 			.Where(h => h.Kind == HandlerKind.RequestWithoutResponse)
 			.ToList();
 
-		sb.AppendLine("\t\tpublic async Task ExecuteRequestHandler(IRequest request, CancellationToken cancellationToken = default)");
+		sb.AppendLine(
+			"\t\tpublic async Task ExecuteRequestHandler(IRequest request, CancellationToken cancellationToken = default)");
 		sb.AppendLine("\t\t{");
 		sb.AppendLine("\t\t\tvar requestType = request.GetType();");
 		sb.AppendLine();
@@ -283,12 +289,13 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 		{
 			for (int i = 0; i < requestsWithoutResponse.Count; i++)
 			{
-				var handler = requestsWithoutResponse[i];
-				var ifKeyword = i == 0 ? "if" : "else if";
+				HandlerInfo handler = requestsWithoutResponse[i];
+				string ifKeyword = i == 0 ? "if" : "else if";
 
 				sb.AppendLine($"\t\t\t{ifKeyword} (requestType == typeof({handler.RequestOrNotificationType}))");
 				sb.AppendLine("\t\t\t{");
-				sb.AppendLine($"\t\t\t\tvar handler = _provider.GetRequiredService<Coordix.Interfaces.IRequestHandler<{handler.RequestOrNotificationType}>>();");
+				sb.AppendLine(
+					$"\t\t\t\tvar handler = _provider.GetRequiredService<Coordix.Interfaces.IRequestHandler<{handler.RequestOrNotificationType}>>();");
 				sb.AppendLine($"\t\t\t\tvar typedRequest = ({handler.RequestOrNotificationType})request;");
 				sb.AppendLine($"\t\t\t\tawait handler.Handle(typedRequest, cancellationToken);");
 				sb.AppendLine("\t\t\t\treturn;");
@@ -315,7 +322,8 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 			.GroupBy(h => h.RequestOrNotificationType)
 			.ToList();
 
-		sb.AppendLine("\t\tpublic async Task ExecuteNotificationHandler<TNotification>(TNotification notification, CancellationToken cancellationToken = default)");
+		sb.AppendLine(
+			"\t\tpublic async Task ExecuteNotificationHandler<TNotification>(TNotification notification, CancellationToken cancellationToken = default)");
 		sb.AppendLine("\t\t\twhere TNotification : INotification");
 		sb.AppendLine("\t\t{");
 		sb.AppendLine("\t\t\tvar notificationType = notification.GetType();");
@@ -325,10 +333,10 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 		{
 			for (int i = 0; i < notifications.Count; i++)
 			{
-				var notificationGroup = notifications[i];
-				var notificationType = notificationGroup.Key;
+				IGrouping<string, HandlerInfo>? notificationGroup = notifications[i];
+				string? notificationType = notificationGroup.Key;
 				var notificationHandlers = notificationGroup.ToList();
-				var ifKeyword = i == 0 ? "if" : "else if";
+				string ifKeyword = i == 0 ? "if" : "else if";
 
 				sb.AppendLine($"\t\t\t{ifKeyword} (notificationType == typeof({notificationType}))");
 				sb.AppendLine("\t\t\t{");
@@ -336,9 +344,10 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 				sb.AppendLine("\t\t\t\tvar tasks = new Task[]");
 				sb.AppendLine("\t\t\t\t{");
 
-				foreach (var handler in notificationHandlers)
+				foreach (HandlerInfo handler in notificationHandlers)
 				{
-					sb.AppendLine($"\t\t\t\t\t_provider.GetRequiredService<Coordix.Interfaces.INotificationHandler<{notificationType}>>().Handle(typedNotification, cancellationToken),");
+					sb.AppendLine(
+						$"\t\t\t\t\t_provider.GetRequiredService<Coordix.Interfaces.INotificationHandler<{notificationType}>>().Handle(typedNotification, cancellationToken),");
 				}
 
 				sb.AppendLine("\t\t\t\t};");
