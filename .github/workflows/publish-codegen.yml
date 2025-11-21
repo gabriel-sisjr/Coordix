@@ -1,10 +1,6 @@
-name: Publish to NuGet
+name: Publish Coordix.CodeGen
 
 on:
-  push:
-    branches:
-      - main
-      - develop
   workflow_dispatch:
     inputs:
       version_suffix:
@@ -23,7 +19,7 @@ on:
 
 jobs:
   publish:
-    name: Publish Package
+    name: Publish Coordix.CodeGen
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -51,7 +47,7 @@ jobs:
       - name: Read version from project file
         id: read_version
         run: |
-          VERSION=$(grep '<Version>' src/Core/Core.csproj | sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p')
+          VERSION=$(grep '<Version>' src/CodeGen/CodeGen.csproj | sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p')
           echo "base_version=$VERSION" >> $GITHUB_OUTPUT
           echo "Base version: $VERSION"
 
@@ -60,22 +56,11 @@ jobs:
         run: |
           BASE_VERSION="${{ steps.read_version.outputs.base_version }}"
           SUFFIX="${{ github.event.inputs.version_suffix }}"
-          BRANCH="${{ github.ref_name }}"
+          BRANCH="${{ github.event.inputs.branch }}"
           EVENT_NAME="${{ github.event_name }}"
 
-          # Push em main = produção automática
-          if [ "$EVENT_NAME" == "push" ] && [ "$BRANCH" == "main" ]; then
-            PACKAGE_VERSION="$BASE_VERSION"
-            echo "Production release (auto): $PACKAGE_VERSION"
-            echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
-            echo "should_publish=true" >> $GITHUB_OUTPUT
-          # Push em develop = não publica (só build/test)
-          elif [ "$EVENT_NAME" == "push" ] && [ "$BRANCH" == "develop" ]; then
-            echo "Push to develop - skipping publish (only build/test)"
-            echo "should_publish=false" >> $GITHUB_OUTPUT
-            exit 0
           # Workflow dispatch em develop com sufixo
-          elif [ "$EVENT_NAME" == "workflow_dispatch" ] && [ "$BRANCH" == "develop" ] && [ -n "$SUFFIX" ] && [ "$SUFFIX" != "" ]; then
+          if [ "$EVENT_NAME" == "workflow_dispatch" ] && [ "$BRANCH" == "develop" ] && [ -n "$SUFFIX" ] && [ "$SUFFIX" != "" ]; then
             PACKAGE_VERSION="$BASE_VERSION-$SUFFIX"
             echo "Pre-release with suffix: $PACKAGE_VERSION"
             echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
@@ -105,14 +90,12 @@ jobs:
 
           echo "Final package version: $PACKAGE_VERSION"
 
-      - name: Update version in project files
+      - name: Update version in project file
         if: steps.package_version.outputs.should_publish == 'true'
         run: |
           PACKAGE_VERSION="${{ steps.package_version.outputs.package_version }}"
-          sed -i "s|<Version>.*</Version>|<Version>$PACKAGE_VERSION</Version>|" src/Core/Core.csproj
-          sed -i "s|<Version>.*</Version>|<Version>$PACKAGE_VERSION</Version>|" src/Background/Background.csproj
           sed -i "s|<Version>.*</Version>|<Version>$PACKAGE_VERSION</Version>|" src/CodeGen/CodeGen.csproj
-          echo "Updated version to: $PACKAGE_VERSION in all projects"
+          echo "Updated version to: $PACKAGE_VERSION"
 
       - name: Restore dependencies
         run: dotnet restore
@@ -122,18 +105,6 @@ jobs:
 
       - name: Run tests
         run: dotnet test --configuration Release --no-build --verbosity normal
-
-      - name: Pack Coordix (Core)
-        if: steps.package_version.outputs.should_publish == 'true'
-        run: |
-          dotnet pack src/Core/Core.csproj --configuration Release --no-build --output ./artifacts
-          echo "✅ Coordix (Core) packed"
-
-      - name: Pack Coordix.Background
-        if: steps.package_version.outputs.should_publish == 'true'
-        run: |
-          dotnet pack src/Background/Background.csproj --configuration Release --no-build --output ./artifacts
-          echo "✅ Coordix.Background packed"
 
       - name: Pack Coordix.CodeGen
         if: steps.package_version.outputs.should_publish == 'true'
@@ -161,6 +132,7 @@ jobs:
         if: steps.package_version.outputs.should_publish == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: nuget-package
+          name: nuget-package-codegen
           path: ./artifacts/*.nupkg
           retention-days: 30
+
