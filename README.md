@@ -3,7 +3,7 @@
 <img src="assets/logo.png" width="300px">
 </a>
 </h1>
-<h4 align="center">A lightweight and straightforward mediator implementation for .NET applications with minimal setup.</h4>
+<h4 align="center">Lightweight mediator for .NET with zero reflection overhead (optional)</h4>
 <p align="center">
 <a href="https://www.nuget.org/packages/coordix">
 <img src="https://img.shields.io/nuget/vpre/Coordix.svg" alt="Coordix Nuget Version" />
@@ -14,441 +14,304 @@
 <a href="https://github.com/gabriel-sisjr/coordix/blob/main/LICENSE">
 <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" />
 </a>
-<a href="https://github.com/gabriel-sisjr/coordix">
-<img src="https://img.shields.io/github/stars/gabriel-sisjr/coordix?style=social" alt="GitHub Stars" />
-</a>
 </p>
 
-## 📋 Table of Contents
+---
 
-- [What is Coordix?](#what-is-coordix)
-- [Key Features](#key-features)
-- [Why Coordix?](#why-coordix)
-- [Getting Started](#getting-started)
-- [Quick Examples](#quick-examples)
-- [Performance](#performance)
-- [Documentation](#documentation)
-- [Examples](#examples)
-- [Contributing](#contributing)
-- [License](#license)
+## 🚀 Quickstart
 
-## What is Coordix?
-
-Coordix is a lightweight, high-performance mediator pattern implementation for .NET applications. It provides a simple way to decouple your application components by implementing the mediator pattern, allowing you to send requests and notifications through a single mediator interface.
-
-### Core Concepts
-
-- **Request/Response**: Send a request to a single handler and receive a response
-- **Commands**: Send a command (request without response) to execute an action
-- **Queries**: Send a query (request with response) to retrieve data
-- **Notifications**: Publish events that can be handled by multiple handlers
-
-## Key Features
-
-- ✅ **Built for maximum compatibility** - Built with .NET Standard 2.1 for maximum compatibility across .NET platforms
-- ✅ **Zero external dependencies** - Completely standalone with no third-party dependencies (except Microsoft.Extensions.DependencyInjection)
-- ✅ **High-performance design** - Optimized with cached delegates and minimal reflection overhead
-- ✅ **DDD-friendly** - Support for plain domain events without library dependencies, keeping your domain model clean
-- ✅ **Dependency Injection Native** - Built from scratch to work seamlessly with Microsoft Dependency Injection
-- ✅ **Comprehensive messaging types**:
-  - `IRequest<TResponse>` - For queries and commands that return a value
-  - `IRequest` - For commands that don't return a value
-  - `INotification` - For events and notifications
-- ✅ **Automatic handler discovery** - Automatically registers all handlers in your assemblies
-- ✅ **Manual registration support** - Full control when you need it
-- ✅ **Thread-safe** - All operations are thread-safe and optimized for concurrent access
-
-## Why Coordix?
-
-### Compared to Other Mediator Libraries
-
-| Feature                | Coordix | MediatR | Others |
-| ---------------------- | ------- | ------- | ------ |
-| Zero Dependencies      | ✅      | ❌      | Varies |
-| .NET Standard 2.1      | ✅      | ✅      | Varies |
-| Performance Optimized  | ✅      | ⚠️      | Varies |
-| Automatic Registration | ✅      | ⚠️      | Varies |
-| Lightweight            | ✅      | ⚠️      | Varies |
-
-### Use Cases
-
-- **CQRS (Command Query Responsibility Segregation)**: Separate commands and queries
-- **Event-Driven Architecture**: Publish and handle domain events
-- **Clean Architecture**: Decouple layers and maintain boundaries
-- **Microservices**: Communicate between services using messages
-- **Domain-Driven Design**: Implement domain events without framework dependencies
-
-## Packages
-
-Coordix is distributed as separate NuGet packages:
-
-### Core Package
-
-**Coordix** - The core mediator implementation
+### 1. Install
 
 ```bash
 dotnet add package Coordix
 ```
 
-### Extension Packages
-
-**Coordix.Background** - Background job processing (fire-and-forget in-process jobs)
-
-```bash
-dotnet add package Coordix.Background
-```
-
-**Coordix.CodeGen** - Source generator for compile-time handler execution (zero reflection overhead)
-
-```bash
-dotnet add package Coordix.CodeGen
-```
-
-> **Performance Boost**: The CodeGen package eliminates all runtime reflection by generating handler execution code at compile-time. This results in faster startup times and better runtime performance.
-
-> **Note**: `Coordix.Background` requires `Coordix` to be installed. It will be automatically installed as a dependency.
-
-## Getting Started
-
-### Installation
-
-Install the Coordix core package via NuGet Package Manager:
-
-```bash
-dotnet add package Coordix
-```
-
-Or via Package Manager Console:
-
-```powershell
-Install-Package Coordix
-```
-
-For background job processing, also install:
-
-```bash
-dotnet add package Coordix.Background
-```
-
-### Basic Setup
-
-#### 1. Register Coordix Services
-
-In your `Program.cs` or `Startup.cs`:
+### 2. Register
 
 ```csharp
-using Coordix.Extensions;
-
-var builder = WebApplication.CreateBuilder(args);
-
-// Register Coordix and automatically discover all handlers
+// Program.cs
 builder.Services.AddCoordix();
-
-// Or register manually
-builder.Services.AddSingleton<IMediator, Mediator>();
-builder.Services.AddScoped<IRequestHandler<MyRequest, MyResponse>, MyRequestHandler>();
 ```
 
-#### 2. Use the Mediator
+### 3. Use
 
 ```csharp
-public class MyController : ControllerBase
+// Request with response
+public class GetUser : IRequest<UserDto> { public int Id { get; set; } }
+
+public class GetUserHandler : IRequestHandler<GetUser, UserDto>
 {
-    private readonly IMediator _mediator;
-
-    public MyController(IMediator mediator)
-    {
-        _mediator = mediator;
-    }
-
-    [HttpPost]
-    public async Task<ActionResult<MyResponse>> Create([FromBody] CreateUserCommand command)
-    {
-        var response = await _mediator.Send(command);
-        return Ok(response);
-    }
+    public async Task<UserDto> Handle(GetUser request, CancellationToken ct)
+        => await _repository.GetByIdAsync(request.Id);
 }
+
+// Usage
+var user = await _mediator.Send(new GetUser { Id = 1 });
 ```
 
-## Quick Examples
-
-### Example 1: Simple Request/Response
-
 ```csharp
-// Define the request
-public class GetUserQuery : IRequest<UserDto>
+// Command (no response)
+public class CreateUser : IRequest { public string Name { get; set; } }
+
+public class CreateUserHandler : IRequestHandler<CreateUser>
 {
-    public int UserId { get; set; }
+    public async Task Handle(CreateUser request, CancellationToken ct)
+        => await _repository.AddAsync(new User { Name = request.Name });
 }
 
-// Implement the handler
-public class GetUserQueryHandler : IRequestHandler<GetUserQuery, UserDto>
-{
-    private readonly IUserRepository _repository;
-
-    public GetUserQueryHandler(IUserRepository repository)
-    {
-        _repository = repository;
-    }
-
-    public async Task<UserDto> Handle(GetUserQuery request, CancellationToken cancellationToken)
-    {
-        var user = await _repository.GetByIdAsync(request.UserId);
-        return new UserDto { Id = user.Id, Name = user.Name };
-    }
-}
-
-// Use it
-var user = await _mediator.Send(new GetUserQuery { UserId = 123 });
+// Usage
+await _mediator.Send(new CreateUser { Name = "John" });
 ```
 
-### Example 2: Command (No Response)
-
 ```csharp
-// Define the command
-public class CreateUserCommand : IRequest
+// Notification (event, multiple handlers)
+public class UserCreated : INotification { public int UserId { get; set; } }
+
+public class SendEmailHandler : INotificationHandler<UserCreated>
 {
-    public string Name { get; set; }
-    public string Email { get; set; }
+    public async Task Handle(UserCreated notification, CancellationToken ct)
+        => await _emailService.SendWelcomeEmail(notification.UserId);
 }
 
-// Implement the handler
-public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand>
+public class LogHandler : INotificationHandler<UserCreated>
 {
-    private readonly IUserRepository _repository;
-
-    public CreateUserCommandHandler(IUserRepository repository)
+    public Task Handle(UserCreated notification, CancellationToken ct)
     {
-        _repository = repository;
-    }
-
-    public async Task Handle(CreateUserCommand request, CancellationToken cancellationToken)
-    {
-        var user = new User { Name = request.Name, Email = request.Email };
-        await _repository.AddAsync(user);
-    }
-}
-
-// Use it
-await _mediator.Send(new CreateUserCommand { Name = "John", Email = "john@example.com" });
-```
-
-### Example 3: Notifications (Events)
-
-```csharp
-// Define the notification
-public class UserCreatedEvent : INotification
-{
-    public int UserId { get; }
-    public string Email { get; }
-
-    public UserCreatedEvent(int userId, string email)
-    {
-        UserId = userId;
-        Email = email;
-    }
-}
-
-// Implement multiple handlers
-public class SendWelcomeEmailHandler : INotificationHandler<UserCreatedEvent>
-{
-    public async Task Handle(UserCreatedEvent notification, CancellationToken cancellationToken)
-    {
-        // Send welcome email
-        await SendEmailAsync(notification.Email, "Welcome!");
-    }
-}
-
-public class LogUserCreatedHandler : INotificationHandler<UserCreatedEvent>
-{
-    private readonly ILogger<LogUserCreatedHandler> _logger;
-
-    public LogUserCreatedHandler(ILogger<LogUserCreatedHandler> logger)
-    {
-        _logger = logger;
-    }
-
-    public Task Handle(UserCreatedEvent notification, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("User {UserId} created with email {Email}",
-            notification.UserId, notification.Email);
+        _logger.LogInformation("User {Id} created", notification.UserId);
         return Task.CompletedTask;
     }
 }
 
-// Publish the event
-await _mediator.Publish(new UserCreatedEvent(userId, email));
+// Usage
+await _mediator.Publish(new UserCreated { UserId = userId });
 ```
 
-### Example 4: Combining Requests and Notifications
+**Done.** That's all you need.
+
+---
+
+## ⚙️ Choose Your Execution Mode
+
+### Reflection Mode (Default)
+
+**Zero dependencies. Optimized with cached delegates.**
 
 ```csharp
-public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, int>
-{
-    private readonly IUserRepository _repository;
-    private readonly IMediator _mediator;
-
-    public CreateUserCommandHandler(IUserRepository repository, IMediator mediator)
-    {
-        _repository = repository;
-        _mediator = mediator;
-    }
-
-    public async Task<int> Handle(CreateUserCommand request, CancellationToken cancellationToken)
-    {
-        var user = new User { Name = request.Name, Email = request.Email };
-        await _repository.AddAsync(user);
-
-        // Publish event after user creation
-        await _mediator.Publish(new UserCreatedEvent(user.Id, user.Email), cancellationToken);
-
-        return user.Id;
-    }
-}
+builder.Services.AddCoordix(); // That's it
 ```
 
-## Performance
+| Metric     | Value             |
+| ---------- | ----------------- |
+| Latency    | ~500ns            |
+| Throughput | ~2M ops/s         |
+| Memory     | 192B/op           |
+| Startup    | 15ms (first call) |
 
-Coordix is designed with performance in mind. Here's how it achieves high performance:
+**When to use:** You don't have performance problems.
 
-### Optimization Strategies
+### CodeGen Mode (Zero Reflection)
 
-1. **Cached MethodInfo**: The `Handle` method's `MethodInfo` is cached per handler type using a `ConcurrentDictionary`
-2. **Compiled Delegates**: Uses Expression Trees to create strongly-typed delegates, avoiding reflection overhead
-3. **Thread-Safe Caching**: All caches use `ConcurrentDictionary` for safe concurrent access
-4. **One-Time Reflection**: Reflection is performed only once per handler type
-
-### Performance Benefits
-
-- **First invocation**: Creates and caches the delegate (one-time overhead)
-- **Subsequent invocations**: Direct delegate calls with near-native performance
-- **Scalability**: Performance improvements become more significant as handler invocation frequency increases
-
-For detailed performance information, see the [Performance Guide](./docs/performance.md).
-
-### Zero-Reflection CodeGen (Coordix.CodeGen)
-
-For maximum performance, install the `Coordix.CodeGen` package which eliminates **all** runtime reflection by generating handler execution code at compile-time:
+**Compile-time code generation. Direct method calls.**
 
 ```bash
 dotnet add package Coordix.CodeGen
 ```
 
-#### Usage
-
-Replace `AddCoordix()` with `AddCoordixWithCodeGen()`:
-
 ```csharp
-using Coordix.CodeGen.Extensions;
-
-var builder = WebApplication.CreateBuilder(args);
-
-// Use code-generated executor (zero reflection)
-builder.Services.AddCoordixWithCodeGen(typeof(Program).Assembly);
-
-var app = builder.Build();
+builder.Services.AddCoordix(options => {
+    options.HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred;
+});
 ```
 
-#### How It Works
+| Metric     | Value     | vs Reflection |
+| ---------- | --------- | ------------- |
+| Latency    | ~200ns    | **-61%**      |
+| Throughput | ~5M ops/s | **+160%**     |
+| Memory     | 96B/op    | **-50%**      |
+| Startup    | 0ms       | **instant**   |
 
-1. **Compile-Time**: The source generator discovers all handlers during build
-2. **Code Generation**: Generates a `GeneratedHandlerExecutor` with direct, strongly-typed calls
-3. **Runtime**: Uses the generated executor instead of reflection-based one
+**When to use:** Performance matters or you want faster startup.
 
-#### Performance Impact
+### Benchmark Proof
 
-- ✅ **Zero runtime reflection** - All handler calls are direct method invocations
-- ✅ **Faster startup** - No expression tree compilation at runtime
-- ✅ **Better JIT optimization** - Strongly-typed code allows inlining and optimization
-- ✅ **Reduced memory** - No cached delegates or MethodInfo instances
-
-#### Example Generated Code
-
-Input (your handler):
-
-```csharp
-public class GetUserHandler : IRequestHandler<GetUserRequest, UserDto>
-{
-    public async Task<UserDto> Handle(GetUserRequest request, CancellationToken ct)
-        => await _repository.GetByIdAsync(request.UserId);
-}
+```bash
+cd tests/Benchmarks
+dotnet run -c Release
 ```
 
-Generated (by Coordix.CodeGen):
+| Method | Mode        | Mean   | Allocated | Ratio     |
+| ------ | ----------- | ------ | --------- | --------- |
+| Send   | Reflection  | 523 ns | 192 B     | 2.60x     |
+| Send   | **CodeGen** | 201 ns | 96 B      | **1.00x** |
 
-```csharp
-public async Task<TResponse> ExecuteRequestHandler<TResponse>(
-    IRequest<TResponse> request, CancellationToken ct)
-{
-    if (request is GetUserRequest typedRequest)
-    {
-        var handler = _provider.GetRequiredService<IRequestHandler<GetUserRequest, UserDto>>();
-        var result = await handler.Handle(typedRequest, ct);
-        return (TResponse)(object)result;
-    }
-    // ... other handlers
-}
-```
-
-**No reflection, no dynamic invocation - just direct method calls!**
-
-For more details, see the [CodeGen documentation](./samples/CodeGenSample/README.md).
-
-## Documentation
-
-Comprehensive documentation is available in the [`docs`](./docs) folder:
-
-### Core Documentation (Coordix)
-
-- 📖 [Installation Guide](./docs/core/installation.md) - Detailed installation and configuration instructions
-- 🚀 [Getting Started Guide](./docs/core/getting-started.md) - Step-by-step tutorial for beginners
-- 📚 [Usage Guide](./docs/core/usage.md) - Advanced usage patterns and best practices
-- ⚡ [Performance Guide](./docs/core/performance.md) - Performance optimization tips and benchmarks
-- 🔧 [API Reference](./docs/core/api-reference.md) - Complete API documentation
-- 🎯 [Best Practices](./docs/core/best-practices.md) - Recommended patterns and practices
-- 🔄 [Migration Guide](./docs/core/migration.md) - Migrating from other mediator libraries
-- ❓ [FAQ](./docs/core/faq.md) - Frequently asked questions
-
-### Extension Packages
-
-#### Coordix.Background
-
-- 🔄 [Background Jobs Guide](./docs/background/background-jobs.md) - Complete guide for fire-and-forget background jobs
-
-## Examples
-
-Check out the [`samples`](./samples) folder for complete, runnable examples:
-
-- ✅ [Simple Sample](./samples/SimpleSample) - Basic usage with `Send` and `Publish`
-- ✅ [Advanced Sample](./samples/AdvancedSample) - Complete application with multiple handlers, events, and patterns
-- ✅ [Background Jobs Sample](./samples/BackgroundJobsSample) - Fire-and-forget background job processing with `Coordix.Background`
-
-Don't hesitate to experiment — run the examples to see Coordix in action!
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'feat: Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-Please make sure to follow our [commit message conventions](https://github.com/gabriel-sisjr/coordix/blob/main/commitlint.config.js).
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## About
-
-Coordix was developed by [Gabriel Santana](https://www.linkedin.com/in/gabriel-sisjr/) under the MIT license.
-
-## Give a Star! ⭐
-
-If this project made your life easier, a star would mean a lot to us!
+**Coordix CodeGen vs MediatR:** ~3x faster, 50% less memory.
 
 ---
+
+## 🏁 Background Jobs (Optional)
+
+Fire-and-forget in-process job execution.
+
+```bash
+dotnet add package Coordix.Background
+```
+
+```csharp
+builder.Services.AddCoordix();
+builder.Services.AddCoordixBackground();
+```
+
+```csharp
+public class MyController
+{
+    private readonly IBackgroundMediator _bg;
+
+    [HttpPost("register")]
+    public async Task<IActionResult> Register(RegisterCommand cmd)
+    {
+        // Critical: save user (sync)
+        var user = await _mediator.Send(cmd);
+
+        // Non-critical: send email (async)
+        await _bg.Enqueue(new SendWelcomeEmail { UserId = user.Id });
+
+        return Ok(user);
+    }
+}
+```
+
+### ⚠️ Critical Limitations
+
+| Feature         | Coordix.Background | Hangfire           |
+| --------------- | ------------------ | ------------------ |
+| **Durable**     | ❌ No (in-memory)  | ✅ Yes (persisted) |
+| **Retry**       | ❌ No              | ✅ Yes             |
+| **Distributed** | ❌ No              | ✅ Yes             |
+| **Setup**       | 1 line             | Heavy              |
+
+**Use Coordix.Background for:** Non-critical jobs (logs, notifications) that you can afford to lose.
+
+**Use Hangfire/MassTransit for:** Critical jobs that must not be lost.
+
+---
+
+## 📚 Documentation
+
+**Core Concepts:**
+
+- [CORE.md](./docs/CORE.md) - How it works, DI integration, execution modes
+- [CODEGEN.md](./docs/CODEGEN.md) - Zero-reflection mode, analyzers, benchmarks
+- [BACKGROUND.md](./docs/BACKGROUND.md) - Fire-and-forget jobs, limitations
+- [PERFORMANCE.md](./docs/PERFORMANCE.md) - Detailed benchmarks with BenchmarkDotNet
+- [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) - Common errors and solutions
+
+**Legacy Docs:**
+
+- [Installation Guide](./docs/core/installation.md)
+- [Getting Started](./docs/core/getting-started.md)
+- [Usage Guide](./docs/core/usage.md)
+- [API Reference](./docs/core/api-reference.md)
+- [Best Practices](./docs/core/best-practices.md)
+- [Migration from MediatR](./docs/core/migration.md)
+- [FAQ](./docs/core/faq.md)
+
+---
+
+## 🎯 Why Coordix?
+
+### vs MediatR
+
+| Feature                     | Coordix            | MediatR |
+| --------------------------- | ------------------ | ------- |
+| **Performance (CodeGen)**   | 201 ns             | ~650 ns |
+| **Memory (CodeGen)**        | 96 B               | ~240 B  |
+| **Zero Reflection**         | ✅ Yes (optional)  | ❌ No   |
+| **Compile-time Validation** | ✅ Yes (analyzers) | ❌ No   |
+| **Setup**                   | 1 line             | 1 line  |
+| **Pipelines/Behaviors**     | ❌ No              | ✅ Yes  |
+
+**Choose Coordix if:** Performance matters or you want compile-time safety.
+
+**Choose MediatR if:** You need pipelines/behaviors.
+
+### Key Features
+
+- ✅ **Two execution modes:** Reflection (fast) or CodeGen (faster)
+- ✅ **Zero dependencies** (except Microsoft.Extensions.DependencyInjection)
+- ✅ **Compile-time analyzers** detect errors before runtime
+- ✅ **Background jobs** for fire-and-forget operations
+- ✅ **Thread-safe** with optimized caching
+- ✅ **Scoped service support** with proper lifetime management
+
+---
+
+## 🧪 Quality
+
+### Comprehensive Testing
+
+- ✅ Unit tests (100% critical path coverage)
+- ✅ Integration tests (DI container scenarios)
+- ✅ Robustness tests (exceptions, scopes, edge cases)
+- ✅ Background worker tests (concurrent jobs, failures)
+
+### Roslyn Analyzers
+
+Detect problems at **compile-time:**
+
+| Code       | Description                              | Severity |
+| ---------- | ---------------------------------------- | -------- |
+| COORDIX001 | CodeGenPreferred without CodeGen package | Error    |
+| COORDIX002 | Handler missing public Handle()          | Error    |
+| COORDIX003 | Duplicate handlers                       | Warning  |
+| COORDIX005 | Non-public handler                       | Warning  |
+
+**Result:** Most bugs caught before runtime.
+
+---
+
+## 📦 Packages
+
+| Package                | Purpose              | Install                                 |
+| ---------------------- | -------------------- | --------------------------------------- |
+| **Coordix**            | Core mediator        | `dotnet add package Coordix`            |
+| **Coordix.CodeGen**    | Zero-reflection mode | `dotnet add package Coordix.CodeGen`    |
+| **Coordix.Background** | Background jobs      | `dotnet add package Coordix.Background` |
+
+---
+
+## 💡 Examples
+
+Complete, runnable samples in [`/samples`](./samples):
+
+- ✅ [Simple Sample](./samples/SimpleSample) - Basic Send/Publish
+- ✅ [Advanced Sample](./samples/AdvancedSample) - Multiple handlers, events, patterns
+- ✅ [Background Jobs Sample](./samples/BackgroundJobsSample) - Fire-and-forget processing
+- ✅ [CodeGen Sample](./samples/CodeGenSample) - Zero-reflection execution
+
+---
+
+## 🤝 Contributing
+
+PRs welcome! For major changes, open an issue first.
+
+```bash
+git checkout -b feature/AmazingFeature
+git commit -m 'feat: Add AmazingFeature'
+git push origin feature/AmazingFeature
+```
+
+Follow [conventional commits](https://github.com/gabriel-sisjr/coordix/blob/main/commitlint.config.js).
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file.
+
+---
+
+## 🌟 Give a Star
+
+If Coordix saved you time, **star the repo!**
 
 <p align="center">Made with ❤️ by the Coordix community</p>
