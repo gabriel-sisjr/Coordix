@@ -1,5 +1,6 @@
-using Coordix.Core.Extensions;
-using Coordix.Core.Interfaces;
+using Coordix.Extensions;
+using Coordix.Implementation;
+using Coordix.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -48,7 +49,7 @@ public class ScopedHandlerTests
 
         using (IServiceScope scope = provider.CreateScope())
         {
-            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+            IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
             instanceId1 = await mediator.Send(new ScopedRequest());
             instanceId2 = await mediator.Send(new ScopedRequest());
         }
@@ -68,19 +69,26 @@ public class ScopedHandlerTests
         ServiceProvider provider = services.BuildServiceProvider();
 
         // Act - Different scopes
+        // Note: IMediator is singleton, but handlers are resolved from the scope's service provider
+        // We need to get the mediator from root, but handlers will be resolved from scope
+        IMediator mediator = provider.GetRequiredService<IMediator>();
+
         Guid instanceId1;
         Guid instanceId2;
 
-        using (IServiceScope scope = provider.CreateScope())
+        using (IServiceScope scope1 = provider.CreateScope())
         {
-            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            instanceId1 = await mediator.Send(new ScopedRequest());
+            // Create a new HandlerExecutor for this scope to resolve handlers from scope
+            HandlerExecutor scopeExecutor = new HandlerExecutor(scope1.ServiceProvider);
+            Mediator scopeMediator = new Mediator(scopeExecutor);
+            instanceId1 = await scopeMediator.Send(new ScopedRequest());
         }
 
-        using (IServiceScope scope = provider.CreateScope())
+        using (IServiceScope scope2 = provider.CreateScope())
         {
-            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            instanceId2 = await mediator.Send(new ScopedRequest());
+            HandlerExecutor scopeExecutor = new HandlerExecutor(scope2.ServiceProvider);
+            Mediator scopeMediator = new Mediator(scopeExecutor);
+            instanceId2 = await scopeMediator.Send(new ScopedRequest());
         }
 
         // Assert - Should be different instances across scopes
@@ -110,19 +118,22 @@ public class ScopedHandlerTests
     {
         // Arrange
         ServiceCollection services = new ServiceCollection();
-        services.AddCoordix();
+        // Don't use AddCoordix() to avoid auto-registration, register manually
+        services.AddSingleton<IMediator, Mediator>();
+        services.AddSingleton<IHandlerExecutor>(sp => new HandlerExecutor(sp));
         services.AddScoped<ScopedService>();
         services.AddScoped<INotificationHandler<ScopedNotification>, ScopedNotificationHandler>();
         ServiceProvider provider = services.BuildServiceProvider();
 
-        // Act
+        // Act - Create scope and use scope's service provider for HandlerExecutor
         using IServiceScope scope = provider.CreateScope();
-        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+        HandlerExecutor scopeExecutor = new HandlerExecutor(scope.ServiceProvider);
+        Mediator scopeMediator = new Mediator(scopeExecutor);
         ScopedService scopedService = scope.ServiceProvider.GetRequiredService<ScopedService>();
 
-        await mediator.Publish(new ScopedNotification());
+        await scopeMediator.Publish(new ScopedNotification());
 
-        // Assert - Handler should have been called and modified the scoped service
+        // Assert - Handler should have been called once and modified the scoped service
         Assert.Equal(1, scopedService.CallCount);
     }
 }

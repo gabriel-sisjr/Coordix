@@ -1,5 +1,5 @@
-using Coordix.Core.Extensions;
-using Coordix.Core.Interfaces;
+using Coordix.Extensions;
+using Coordix.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -18,10 +18,10 @@ public class MissingHandlerTests
         ServiceCollection services = new ServiceCollection();
         services.AddCoordix();
         ServiceProvider provider = services.BuildServiceProvider();
-        var mediator = provider.GetRequiredService<IMediator>();
+        IMediator mediator = provider.GetRequiredService<IMediator>();
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => mediator.Send(new UnregisteredRequest())
         );
 
@@ -37,7 +37,7 @@ public class MissingHandlerTests
         ServiceCollection services = new ServiceCollection();
         services.AddCoordix();
         ServiceProvider provider = services.BuildServiceProvider();
-        var mediator = provider.GetRequiredService<IMediator>();
+        IMediator mediator = provider.GetRequiredService<IMediator>();
 
         // Act - Should not throw, just complete
         await mediator.Publish(new UnregisteredNotification());
