@@ -98,6 +98,93 @@ namespace Coordix.Implementation
             await Task.WhenAll(tasksHandlers);
         }
 
+        /// <inheritdoc />
+        public async Task<object> ExecuteRequestHandlerDynamic(object request, Type responseType, CancellationToken cancellationToken = default)
+        {
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            if (responseType == null)
+            {
+                throw new ArgumentNullException(nameof(responseType));
+            }
+
+            // Use reflection once to call the generic method ExecuteRequestHandler<TResponse>
+            // This centralizes reflection in the executor instead of having it in the BackgroundWorker
+            Type requestType = request.GetType();
+
+            // Find the IRequest<TResponse> interface on the request
+            Type requestInterfaceType = typeof(IRequest<>).MakeGenericType(responseType);
+
+            if (!requestInterfaceType.IsAssignableFrom(requestType))
+            {
+                throw new InvalidOperationException($"Request type {requestType.Name} does not implement IRequest<{responseType.Name}>");
+            }
+
+            // Get the ExecuteRequestHandler<TResponse> method
+            MethodInfo method = typeof(IHandlerExecutor).GetMethod(nameof(ExecuteRequestHandler), 1, new[] { requestInterfaceType, typeof(CancellationToken) });
+            if (method == null)
+            {
+                // Fallback: find by name and parameters
+                method = typeof(IHandlerExecutor).GetMethods()
+                    .FirstOrDefault(m => m.Name == nameof(ExecuteRequestHandler) &&
+                                         m.IsGenericMethod &&
+                                         m.GetParameters().Length == 2);
+
+                if (method == null)
+                {
+                    throw new InvalidOperationException($"ExecuteRequestHandler method not found for response type {responseType.Name}");
+                }
+
+                method = method.MakeGenericMethod(responseType);
+            }
+
+            // Invoke the method
+            Task task = (Task)method.Invoke(this, new[] { request, cancellationToken })!;
+            await task;
+
+            // Extract the result from Task<TResponse>
+            PropertyInfo resultProperty = task.GetType().GetProperty("Result")!;
+            return resultProperty.GetValue(task)!;
+        }
+
+        /// <inheritdoc />
+        public async Task ExecuteNotificationHandlerDynamic(object notification, Type notificationType, CancellationToken cancellationToken = default)
+        {
+            if (notification == null)
+            {
+                throw new ArgumentNullException(nameof(notification));
+            }
+
+            if (notificationType == null)
+            {
+                throw new ArgumentNullException(nameof(notificationType));
+            }
+
+            // Use reflection once to call the generic method ExecuteNotificationHandler<TNotification>
+            // This centralizes reflection in the executor instead of having it in the BackgroundWorker
+
+            // Get the ExecuteNotificationHandler<TNotification> method
+            MethodInfo method = typeof(IHandlerExecutor).GetMethods()
+                .FirstOrDefault(m => m.Name == nameof(ExecuteNotificationHandler) &&
+                                     m.IsGenericMethod &&
+                                     m.GetParameters().Length == 2);
+
+            if (method == null)
+            {
+                throw new InvalidOperationException($"ExecuteNotificationHandler method not found for notification type {notificationType.Name}");
+            }
+
+            // Make the generic method with the notification type
+            MethodInfo genericMethod = method.MakeGenericMethod(notificationType);
+
+            // Invoke the method
+            Task task = (Task)genericMethod.Invoke(this, new[] { notification, cancellationToken })!;
+            await task;
+        }
+
         /// <summary>
         /// Gets or creates a cached MethodInfo for the Handle method of a handler type.
         /// This method ensures that reflection is performed only once per handler type,
