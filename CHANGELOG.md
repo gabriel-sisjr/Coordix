@@ -5,7 +5,7 @@ All notable changes to Coordix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0-preview] - 2025-01-XX
+## [0.2.0] - 2025-11-22
 
 ### 🎯 Major Performance & Quality Release
 
@@ -142,7 +142,7 @@ None. This release is fully backward compatible.
 
 ## Why This Release Matters
 
-### Before 0.5.0
+### Before 0.2.0
 
 - ✅ Core functionality worked
 - ⚠️ No performance validation
@@ -151,14 +151,14 @@ None. This release is fully backward compatible.
 - ⚠️ No compile-time safety
 - ⚠️ Limited documentation
 
-### After 0.5.0
+### After 0.2.0
 
 - ✅ **Scientifically validated performance** (BenchmarkDotNet)
 - ✅ **Battle-tested edge cases** (25+ robustness tests)
 - ✅ **Zero reflection in background worker**
 - ✅ **Compile-time error detection** (5 Roslyn analyzers)
 - ✅ **Production-ready documentation** (transparent about limitations)
-- ✅ **Performance vs MediatR proven** (3x faster with CodeGen)
+- ✅ **Performance vs MediatR proven** (1.7-2.2x faster with CodeGen, 29-87% less memory)
 
 ### Performance Answer
 
@@ -173,10 +173,12 @@ BenchmarkDotNet v0.13.12
 
 | Method    | Library  | Mean    | Allocated |
 |-----------|----------|---------|-----------|
-| Send      | Coordix  | 201 ns  | 96 B      |
-| Send      | MediatR  | 650 ns  | 240 B     |
+| Send      | Coordix CodeGen  | 50.31 ns  | 352 B      |
+| Send      | MediatR  | 87.02 ns  | 496 B     |
+| Send      | Coordix Reflection  | 177.57 ns  | 600 B     |
 
-Coordix is 3.2x faster with 60% less memory.
+Coordix CodeGen is 1.7x faster than MediatR with 29% less memory.
+Coordix CodeGen is 3.5x faster than Reflection mode.
 ```
 
 **Numbers don't lie.**
@@ -185,7 +187,7 @@ Coordix is 3.2x faster with 60% less memory.
 
 ## Migration Guide
 
-### From 0.4.x to 0.5.0
+### From 0.1.x to 0.2.0
 
 No breaking changes. However, to benefit from improvements:
 

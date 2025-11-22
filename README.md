@@ -139,12 +139,23 @@ cd tests/Benchmarks
 dotnet run -c Release
 ```
 
-| Method | Mode        | Mean   | Allocated | Ratio     |
-| ------ | ----------- | ------ | --------- | --------- |
-| Send   | Reflection  | 523 ns | 192 B     | 2.60x     |
-| Send   | **CodeGen** | 201 ns | 96 B      | **1.00x** |
+**Request/Response:**
+| Method | Mean | Allocated | Ratio |
+|--------|------|-----------|-------|
+| Coordix CodeGen | 50.31 ns | 352 B | **1.00x** |
+| MediatR | 87.02 ns | 496 B | 1.73x |
+| Coordix Reflection | 177.57 ns | 600 B | 3.53x |
 
-**Coordix CodeGen vs MediatR:** ~3x faster, 50% less memory.
+**Notifications (10 handlers):**
+| Method | Mean | Allocated | Ratio |
+|--------|------|-----------|-------|
+| Coordix CodeGen | 228.1 ns | 424 B | **1.00x** |
+| MediatR | 494.7 ns | 3,176 B | 2.17x |
+| Coordix Reflection | 881.5 ns | 3,152 B | 3.86x |
+
+**Coordix CodeGen vs MediatR:** 1.7-2.2x faster, 29-87% less memory.
+
+*Tested on .NET 8.0.22, Apple M4, BenchmarkDotNet v0.13.12*
 
 ---
 

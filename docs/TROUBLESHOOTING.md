@@ -72,8 +72,8 @@ dotnet build
 ```xml
 <!-- Your .csproj should have: -->
 <ItemGroup>
-  <PackageReference Include="Coordix" Version="0.5.0" />
-  <PackageReference Include="Coordix.CodeGen" Version="0.5.0" 
+  <PackageReference Include="Coordix" Version="0.2.0" />
+  <PackageReference Include="Coordix.CodeGen" Version="0.1.0" 
                     OutputItemType="Analyzer" 
                     ReferenceOutputAssembly="false" />
 </ItemGroup>
