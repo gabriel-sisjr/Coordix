@@ -36,16 +36,18 @@
 		<Compile Remove="**\*.cs" />
 	</ItemGroup>
 
-	<!-- netstandard2.0: generator files + common -->
+	<!-- netstandard2.0: generator files + analyzers + common -->
 	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
 		<Compile Include="CoordixSourceGenerator.cs" />
 		<Compile Include="HandlerInfo.cs" />
+		<Compile Include="Analyzers\**\*.cs" />
 	</ItemGroup>
 
-	<!-- netstandard2.1: generator files (for test reference) + extensions + common -->
+	<!-- netstandard2.1: generator files (for test reference) + analyzers + extensions + common -->
 	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
 		<Compile Include="CoordixSourceGenerator.cs" />
 		<Compile Include="HandlerInfo.cs" />
+		<Compile Include="Analyzers\**\*.cs" />
 		<Compile Include="Extensions\**\*.cs" />
 	</ItemGroup>
 
