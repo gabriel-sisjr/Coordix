@@ -12,7 +12,7 @@ internal static class CoordixAnalyzerDiagnostics
     public static readonly DiagnosticDescriptor CodeGenModeWithoutPackage = new DiagnosticDescriptor(
         id: "COORDIX001",
         title: "CodeGenPreferred mode requires Coordix.CodeGen package",
-        messageFormat: "HandlerResolutionMode.CodeGenPreferred is configured but Coordix.CodeGen package is not referenced. Either install Coordix.CodeGen or use HandlerResolutionMode.Reflection",
+        messageFormat: "HandlerResolutionMode.CodeGenPreferred is configured but Coordix.CodeGen package is not referenced. Either install Coordix.CodeGen or use HandlerResolutionMode.Reflection.",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
@@ -32,7 +32,7 @@ internal static class CoordixAnalyzerDiagnostics
     public static readonly DiagnosticDescriptor DuplicateHandler = new DiagnosticDescriptor(
         id: "COORDIX003",
         title: "Duplicate handler registration detected",
-        messageFormat: "Multiple handlers found for request type '{0}'. Only one handler is allowed for requests with responses",
+        messageFormat: "Multiple handlers found for request type '{0}'. Only one handler is allowed for requests with responses.",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
