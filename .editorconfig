@@ -239,3 +239,17 @@ dotnet_naming_style.pascal_case_style.capitalization = pascal_case
 
 dotnet_naming_style.camel_case_style.capitalization = camel_case
 
+#### Analyzer Rules Configuration ####
+
+# Coordix custom analyzer rules
+# COORDIX001: CodeGenPreferred mode requires Coordix.CodeGen package
+dotnet_diagnostic.COORDIX001.severity = error
+# COORDIX002: Handler missing public Handle method
+dotnet_diagnostic.COORDIX002.severity = error
+# COORDIX003: Duplicate handler registration detected
+dotnet_diagnostic.COORDIX003.severity = warning
+# COORDIX004: Handler not registered in DI container
+dotnet_diagnostic.COORDIX004.severity = warning
+# COORDIX005: Handler class should be public
+dotnet_diagnostic.COORDIX005.severity = warning
+

@@ -27,42 +27,46 @@ public class DuplicateHandlerAnalyzer : DiagnosticAnalyzer
 
     private void AnalyzeCompilation(CompilationAnalysisContext context)
     {
-        // Find all handler types in the compilation
+        // Find all handler types in the compilation using symbol-based approach
+        // This avoids RS1030 warning by not using GetSemanticModel()
         Dictionary<string, List<(INamedTypeSymbol Handler, Location Location)>> handlerRegistrations = new Dictionary<string, List<(INamedTypeSymbol Handler, Location Location)>>();
 
-        foreach (SyntaxTree syntaxTree in context.Compilation.SyntaxTrees)
+        // Get all types in the compilation
+        INamedTypeSymbol? requestHandlerInterface = context.Compilation.GetTypeByMetadataName("Coordix.Interfaces.IRequestHandler`2");
+        if (requestHandlerInterface == null)
         {
-            SemanticModel semanticModel = context.Compilation.GetSemanticModel(syntaxTree);
-            SyntaxNode root = syntaxTree.GetRoot(context.CancellationToken);
+            return;
+        }
 
-            // Find all class declarations
-            IEnumerable<ClassDeclarationSyntax> classDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
-
-            foreach (ClassDeclarationSyntax classDecl in classDeclarations)
+        // Visit all types in the compilation
+        foreach (INamedTypeSymbol type in GetAllTypes(context.Compilation.GlobalNamespace))
+        {
+            if (type.TypeKind != TypeKind.Class || type.IsAbstract)
             {
-                INamedTypeSymbol? classSymbol = semanticModel.GetDeclaredSymbol(classDecl) as INamedTypeSymbol;
-                if (classSymbol == null)
+                continue;
+            }
+
+            // Check if this class implements IRequestHandler with response
+            List<INamedTypeSymbol> requestHandlerInterfaces = type.Interfaces
+                .Where(i => i.OriginalDefinition.Equals(requestHandlerInterface, SymbolEqualityComparer.Default))
+                .ToList();
+
+            foreach (INamedTypeSymbol? handlerInterface in requestHandlerInterfaces)
+            {
+                // Get the request type (first type argument)
+                ITypeSymbol requestType = handlerInterface.TypeArguments[0];
+                string requestTypeKey = requestType.ToDisplayString();
+
+                if (!handlerRegistrations.ContainsKey(requestTypeKey))
                 {
-                    continue;
+                    handlerRegistrations[requestTypeKey] = new List<(INamedTypeSymbol, Location)>();
                 }
 
-                // Check if this class implements IRequestHandler with response
-                List<INamedTypeSymbol> requestHandlerInterfaces = classSymbol.Interfaces
-                    .Where(i => i.Name == "IRequestHandler" && i.TypeArguments.Length == 2)
-                    .ToList();
-
-                foreach (INamedTypeSymbol? handlerInterface in requestHandlerInterfaces)
+                // Get location from the type's syntax reference
+                Location? location = type.Locations.FirstOrDefault();
+                if (location != null)
                 {
-                    // Get the request type (first type argument)
-                    ITypeSymbol requestType = handlerInterface.TypeArguments[0];
-                    string requestTypeKey = requestType.ToDisplayString();
-
-                    if (!handlerRegistrations.ContainsKey(requestTypeKey))
-                    {
-                        handlerRegistrations[requestTypeKey] = new List<(INamedTypeSymbol, Location)>();
-                    }
-
-                    handlerRegistrations[requestTypeKey].Add((classSymbol, classDecl.Identifier.GetLocation()));
+                    handlerRegistrations[requestTypeKey].Add((type, location));
                 }
             }
         }
@@ -81,6 +85,22 @@ public class DuplicateHandlerAnalyzer : DiagnosticAnalyzer
                     );
                     context.ReportDiagnostic(diagnostic);
                 }
+            }
+        }
+    }
+
+    private static IEnumerable<INamedTypeSymbol> GetAllTypes(INamespaceSymbol namespaceSymbol)
+    {
+        foreach (INamedTypeSymbol type in namespaceSymbol.GetTypeMembers())
+        {
+            yield return type;
+        }
+
+        foreach (INamespaceSymbol nestedNamespace in namespaceSymbol.GetNamespaceMembers())
+        {
+            foreach (INamedTypeSymbol type in GetAllTypes(nestedNamespace))
+            {
+                yield return type;
             }
         }
     }

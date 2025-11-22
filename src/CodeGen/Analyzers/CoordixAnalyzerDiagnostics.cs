@@ -36,7 +36,8 @@ internal static class CoordixAnalyzerDiagnostics
         category: Category,
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Multiple handlers registered for the same request type may cause ambiguous behavior."
+        description: "Multiple handlers registered for the same request type may cause ambiguous behavior.",
+        customTags: new[] { WellKnownDiagnosticTags.CompilationEnd }
     );
 
     public static readonly DiagnosticDescriptor HandlerNotRegistered = new DiagnosticDescriptor(
