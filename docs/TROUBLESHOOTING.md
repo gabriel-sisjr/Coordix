@@ -101,7 +101,7 @@ Jobs enqueued but never processed.
 
 #### 1. Register worker
 ```csharp
-builder.Services.AddCoordix();
+// AddCoordixBackground automatically includes core services
 builder.Services.AddCoordixBackground(); // ← REQUIRED
 ```
 
@@ -162,12 +162,19 @@ public class GetUserHandler : IRequestHandler<GetUser, UserDto>
 ### COORDIX001: CodeGenPreferred without package
 ```csharp
 options.HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred;
-// ❌ ERROR: Install Coordix.CodeGen or use Reflection
+// ❌ ERROR: Use AddCoordixWithCodeGen() instead
 ```
 
 **Solution:**
 ```bash
 dotnet add package Coordix.CodeGen
+```
+
+```csharp
+using Coordix.CodeGen.Extensions;
+
+// Use this instead of AddCoordix()
+services.AddCoordixWithCodeGen();
 ```
 
 ### COORDIX002: Handle() not public

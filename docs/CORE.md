@@ -65,12 +65,11 @@ builder.Services.AddCoordix(options => {
 
 ### CodeGen (Zero Reflection)
 ```csharp
-builder.Services.AddCoordix(options => {
-    options.HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred;
-});
-```
+using Coordix.CodeGen.Extensions;
 
-**Requires:** `dotnet add package Coordix.CodeGen`
+// Install: dotnet add package Coordix.CodeGen
+builder.Services.AddCoordixWithCodeGen();
+```
 
 **How it works:**
 - Source generator creates code at **compile-time**
@@ -79,16 +78,7 @@ builder.Services.AddCoordix(options => {
 
 **When to use:** Performance is critical or you want faster startup
 
-### Automatic Fallback
-
-If you configure `CodeGenPreferred` but didn't install the package:
-
-```
-⚠️ WARNING: CodeGenPreferred configured but Coordix.CodeGen not found
-→ Using Reflection mode as fallback
-```
-
-**Coordix never breaks.** It chooses the best available.
+> **Important**: Use `AddCoordixWithCodeGen()` instead of `AddCoordix()` when using CodeGen mode. This automatically registers all core services with CodeGen enabled.
 
 ## Scoped Services
 

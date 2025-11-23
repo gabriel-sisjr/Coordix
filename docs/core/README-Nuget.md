@@ -249,9 +249,11 @@ dotnet add package Coordix.Background
 ```
 
 ```csharp
-services.AddCoordix();           // Core mediator (required)
-services.AddCoordixBackground(); // Background jobs extension
+// AddCoordixBackground automatically includes core services
+services.AddCoordixBackground();
 ```
+
+> **Note**: You do **not** need to call `AddCoordix()` when using `AddCoordixBackground()`. The Background extension registers all core services automatically.
 
 See the [Background Jobs Guide](https://github.com/gabriel-sisjr/coordix/blob/main/docs/background/background-jobs.md) for more information.
 

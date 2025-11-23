@@ -211,25 +211,22 @@ var mediator = serviceProvider.GetRequiredService<IMediator>();
 dotnet add package Coordix.Background
 ```
 
-> **Note**: `Coordix.Background` automatically installs `Coordix` as a dependency. You still need to call `AddCoordix()` to register the core mediator.
+> **Note**: `Coordix.Background` automatically installs `Coordix` as a dependency and registers all core services internally.
 
 ### Configuration
 
 ```csharp
-using Coordix.Extensions;
 using Coordix.Background.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Register Coordix core
-builder.Services.AddCoordix();
-
-// Register Coordix.Background for background jobs
+// Register Coordix.Background (automatically includes core Coordix services)
 builder.Services.AddCoordixBackground();
 
-// Register your handlers
-builder.Services.AddScoped<IRequestHandler<MyRequest>, MyHandler>();
+// Your handlers are automatically discovered and registered
 ```
+
+> **Important**: You do **not** need to call `AddCoordix()` when using `AddCoordixBackground()`. The Background extension registers all core services automatically.
 
 ### Usage
 

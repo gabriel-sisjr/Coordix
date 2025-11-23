@@ -24,28 +24,25 @@ dotnet add package Coordix.Background
 ### Basic Setup
 
 ```csharp
-using Coordix.Extensions;
 using Coordix.Background.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Register Coordix core (required)
-builder.Services.AddCoordix();
-
-// 2. Register Coordix.Background
+// Register Coordix.Background (automatically includes core Coordix services)
 builder.Services.AddCoordixBackground();
 
-// 3. Register your handlers (same as Coordix core)
-builder.Services.AddScoped<IRequestHandler<SendEmailRequest>, SendEmailHandler>();
+// Your handlers are automatically discovered and registered
 ```
+
+> **Important**: You do **not** need to call `AddCoordix()` when using `AddCoordixBackground()`. The Background extension registers all core services automatically.
 
 ### How It Works
 
-1. `AddCoordix()` - Registers the core `IMediator` and discovers handlers
-2. `AddCoordixBackground()` - Registers:
-   - `IBackgroundMediator` - For enqueueing jobs
-   - `BackgroundWorker` - A hosted service that processes jobs from the queue
-   - Internal channel for job queuing
+`AddCoordixBackground()` automatically:
+1. Registers the core `IMediator` and discovers handlers
+2. Registers `IBackgroundMediator` for enqueueing jobs
+3. Registers `BackgroundWorker` as a hosted service that processes jobs from the queue
+4. Sets up internal channel for job queuing
 
 ## Usage
 
@@ -203,16 +200,15 @@ System.InvalidOperationException: Email service unavailable
 
 ## Best Practices
 
-### 1. Always Register Coordix Core First
+### 1. Use AddCoordixBackground Alone
 
 ```csharp
-// ✅ Correct order
-services.AddCoordix();           // Core mediator
-services.AddCoordixBackground(); // Background extension
-
-// ❌ Wrong - Background needs core
+// ✅ Correct - Background automatically includes core
 services.AddCoordixBackground();
+
+// ❌ Wrong - Redundant, AddCoordix is already called internally
 services.AddCoordix();
+services.AddCoordixBackground();
 ```
 
 ### 2. Use Background Jobs for Non-Critical Operations

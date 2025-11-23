@@ -67,17 +67,13 @@ services.AddCoordix();
 ### How do I register Coordix.Background?
 
 ```csharp
-using Coordix.Extensions;
 using Coordix.Background.Extensions;
 
-// Register core mediator (required)
-services.AddCoordix();
-
-// Register background jobs extension
+// Register Coordix.Background (automatically includes core services)
 services.AddCoordixBackground();
 ```
 
-> **Note**: `Coordix.Background` requires `Coordix` to be installed. Always register `AddCoordix()` before `AddCoordixBackground()`.
+> **Important**: You do **not** need to call `AddCoordix()` when using `AddCoordixBackground()`. The Background extension registers all core services automatically.
 
 ### Can I use Coordix in a console application?
 
@@ -233,17 +229,25 @@ await mediator.Send(new MyRequest { /* dummy data */ });
 
 ### What is HandlerResolutionMode?
 
-`HandlerResolutionMode` is an enum that defines how handlers are resolved and executed:
+`HandlerResolutionMode` defines how handlers are resolved and executed:
 
 - **Reflection** (default): Uses reflection-based handler resolution with cached delegates. This provides excellent performance and is the recommended mode for most applications.
-- **CodeGenPreferred**: Uses code generation for handler resolution. This mode requires the `Coordix.CodeGen` package to be installed. When selected without the package, an `InvalidOperationException` is thrown with a clear error message.
+- **CodeGenPreferred**: Uses compile-time code generation for direct method calls (zero reflection). This mode requires the `Coordix.CodeGen` package.
 
+**Reflection Mode (default):**
 ```csharp
-services.AddCoordix(options =>
-{
-    options.HandlerResolutionMode = HandlerResolutionMode.Reflection; // Default
-});
+services.AddCoordix(); // Uses Reflection mode
 ```
+
+**CodeGen Mode (zero reflection):**
+```csharp
+using Coordix.CodeGen.Extensions;
+
+// Install: dotnet add package Coordix.CodeGen
+services.AddCoordixWithCodeGen(); // Uses CodeGen mode
+```
+
+> **Important**: When using CodeGen, call `AddCoordixWithCodeGen()` instead of `AddCoordix()`.
 
 ### What is IHandlerExecutor?
 

@@ -170,9 +170,7 @@ public class MyBenchmark
     public void Setup()
     {
         var services = new ServiceCollection();
-        services.AddCoordix(options => {
-            options.HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred;
-        });
+        services.AddCoordixWithCodeGen(); // Use CodeGen mode
         services.AddTransient<IRequestHandler<MyRequest, MyResponse>, MyHandler>();
         _mediator = services.BuildServiceProvider().GetRequiredService<IMediator>();
     }
