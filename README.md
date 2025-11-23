@@ -142,20 +142,25 @@ dotnet run -c Release
 **Request/Response:**
 | Method | Mean | Allocated | Ratio |
 |--------|------|-----------|-------|
-| Coordix CodeGen | 50.31 ns | 352 B | **1.00x** |
-| MediatR | 87.02 ns | 496 B | 1.73x |
-| Coordix Reflection | 177.57 ns | 600 B | 3.53x |
+| Coordix CodeGen | 51.84 ns | 352 B | **1.00x** |
+| MediatR | 89.91 ns | 496 B | 1.73x |
+| Coordix Reflection | 181.72 ns | 600 B | 3.50x |
+| Wolverine Reflection | 270.03 ns | 944 B | 5.21x |
+| Wolverine CodeGen | 277.25 ns | 944 B | 5.35x |
 
 **Notifications (10 handlers):**
 | Method | Mean | Allocated | Ratio |
 |--------|------|-----------|-------|
-| Coordix CodeGen | 228.1 ns | 424 B | **1.00x** |
-| MediatR | 494.7 ns | 3,176 B | 2.17x |
-| Coordix Reflection | 881.5 ns | 3,152 B | 3.86x |
+| Coordix CodeGen | 245.8 ns | 424 B | **1.00x** |
+| MediatR | 546.6 ns | 3,176 B | 2.22x |
+| Coordix Reflection | 914.1 ns | 3,152 B | 3.72x |
+| Wolverine CodeGen | 3,107.3 ns | 1,576 B | 12.64x |
+| Wolverine Reflection | 4,374.6 ns | 1,576 B | 17.80x |
 
-**Coordix CodeGen vs MediatR:** 1.7-2.2x faster, 29-87% less memory.
+**Coordix CodeGen vs MediatR:** 1.7-2.2x faster, 29-87% less memory.  
+**Coordix CodeGen vs Wolverine:** 5.2-17.8x faster, 63-73% less memory.
 
-*Tested on .NET 8.0.22, Apple M4, BenchmarkDotNet v0.13.12*
+_Tested on .NET 8.0.22, Apple M4, BenchmarkDotNet v0.13.12_
 
 ---
 
