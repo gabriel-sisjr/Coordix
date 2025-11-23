@@ -25,6 +25,11 @@
 		<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
 	</PropertyGroup>
 
+	<!-- Allow tests to access internal members -->
+	<ItemGroup>
+		<InternalsVisibleTo Include="CodeGenTests" />
+	</ItemGroup>
+
 	<!-- Source Generator specific properties (only for netstandard2.0) -->
 	<PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
 		<IsRoslynComponent>true</IsRoslynComponent>
