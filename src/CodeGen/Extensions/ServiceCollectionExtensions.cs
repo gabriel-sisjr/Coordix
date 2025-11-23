@@ -24,36 +24,15 @@ public static class ServiceCollectionExtensions
     /// </exception>
     public static IServiceCollection AddCoordixWithCodeGen(this IServiceCollection services)
     {
-        return AddCoordixWithCodeGen(services, configureOptions: null);
+        return AddCoordixWithCodeGen(services, Array.Empty<object>());
     }
 
     /// <summary>
-    /// Adds Coordix services with code generation mode enabled and optional configuration.
+    /// Adds Coordix services with code generation mode enabled and assembly scanning parameters.
     /// This method automatically registers core Coordix services (IMediator, handlers, etc.)
     /// and configures the system to use the code-generated handler executor.
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
-    /// <param name="configureOptions">Optional action to configure additional Coordix options.</param>
-    /// <returns>The service collection for chaining.</returns>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when the generated handler executor type is not found.
-    /// This typically means the Coordix.CodeGen source generator hasn't run or the project hasn't been built.
-    /// </exception>
-    public static IServiceCollection AddCoordixWithCodeGen(
-        this IServiceCollection services,
-        Action<CoordixOptions>? configureOptions)
-    {
-        return AddCoordixWithCodeGen(services, configureOptions, Array.Empty<object>());
-    }
-
-    /// <summary>
-    /// Adds Coordix services with code generation mode enabled, optional configuration,
-    /// and assembly scanning parameters.
-    /// This method automatically registers core Coordix services (IMediator, handlers, etc.)
-    /// and configures the system to use the code-generated handler executor.
-    /// </summary>
-    /// <param name="services">The service collection to add services to.</param>
-    /// <param name="configureOptions">Optional action to configure additional Coordix options.</param>
     /// <param name="args">
     /// Optional parameters to control which assemblies are scanned—either none, an array of <see cref="Assembly"/>,
     /// or namespace prefix strings.
@@ -65,7 +44,6 @@ public static class ServiceCollectionExtensions
     /// </exception>
     public static IServiceCollection AddCoordixWithCodeGen(
         this IServiceCollection services,
-        Action<CoordixOptions>? configureOptions,
         params object[] args)
     {
         // Resolve assemblies using the same logic as core (or scan all if no args provided)
@@ -81,26 +59,20 @@ public static class ServiceCollectionExtensions
                 "Make sure the Coordix.CodeGen source generator is properly installed and the project has been built.");
         }
 
-        // Register core Coordix services with CodeGenPreferred mode
-        // The HandlerResolutionMode is set first, then user options are applied
-        Coordix.Extensions.ServiceCollectionExtensions.AddCoordix(
-            services,
-            options =>
-            {
-                // Set CodeGenPreferred mode first
-                options.HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred;
+        // Register core Coordix services with default Reflection mode first
+        // We can't pass CodeGenPreferred here because Core will throw an exception
+        Coordix.Extensions.ServiceCollectionExtensions.AddCoordix(services, args);
 
-                // Allow user to configure other options (but not override the mode)
-                configureOptions?.Invoke(options);
-
-                // Ensure mode stays as CodeGenPreferred
-                options.HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred;
-            },
-            args);
-
-        // Replace the IHandlerExecutor with the generated implementation
+        // Replace the reflection-based executor with the generated implementation
         services.RemoveAll<IHandlerExecutor>();
         services.TryAddSingleton(typeof(IHandlerExecutor), generatedExecutorType);
+
+        // Update CoordixOptions to reflect that we're using CodeGen mode
+        services.RemoveAll<CoordixOptions>();
+        services.TryAddSingleton(new CoordixOptions
+        {
+            HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred
+        });
 
         return services;
     }
@@ -190,6 +162,62 @@ public static class ServiceCollectionExtensions
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Adds Coordix.Background services with CodeGen mode enabled.
+    /// This method automatically registers core Coordix services with code generation,
+    /// discovers handlers, and configures background job processing.
+    /// </summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <returns>The service collection for chaining.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the generated handler executor type is not found.
+    /// This typically means the Coordix.CodeGen source generator hasn't run or the project hasn't been built.
+    /// </exception>
+    /// <remarks>
+    /// This method requires both Coordix.CodeGen and Coordix.Background packages to be installed.
+    /// </remarks>
+    public static IServiceCollection AddCoordixBackgroundWithCodeGen(this IServiceCollection services)
+    {
+        return AddCoordixBackgroundWithCodeGen(services, Array.Empty<object>());
+    }
+
+    /// <summary>
+    /// Adds Coordix.Background services with CodeGen mode enabled and assembly scanning parameters.
+    /// This method automatically registers core Coordix services with code generation,
+    /// discovers handlers, and configures background job processing.
+    /// </summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <param name="args">
+    /// Optional parameters to control which assemblies are scanned—either none, an array of <see cref="Assembly"/>,
+    /// or namespace prefix strings.
+    /// </param>
+    /// <returns>The service collection for chaining.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the generated handler executor type is not found.
+    /// This typically means the Coordix.CodeGen source generator hasn't run or the project hasn't been built.
+    /// </exception>
+    /// <remarks>
+    /// This method requires both Coordix.CodeGen and Coordix.Background packages to be installed.
+    /// </remarks>
+    public static IServiceCollection AddCoordixBackgroundWithCodeGen(
+        this IServiceCollection services,
+        params object[] args)
+    {
+        if (services == null)
+        {
+            throw new ArgumentNullException(nameof(services));
+        }
+
+        // 1. Register Coordix with CodeGen mode
+        AddCoordixWithCodeGen(services, args);
+
+        // 2. Register background worker components
+        // This calls the internal method from Coordix.Background package
+        Coordix.Background.Extensions.ServiceCollectionExtensions.RegisterBackgroundWorker(services);
+
+        return services;
     }
 }
 
