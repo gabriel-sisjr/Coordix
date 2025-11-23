@@ -317,7 +317,24 @@ namespace Coordix.Extensions
         /// </param>
         private static void RegisterHandlers(IServiceCollection services, Assembly[] assemblies, Type handlerInterface)
         {
-            System.Collections.Generic.List<Type> types = assemblies.SelectMany(a => a.GetTypes())
+            System.Collections.Generic.List<Type> types = assemblies
+                    .SelectMany(a =>
+                    {
+                        try
+                        {
+                            return a.GetTypes();
+                        }
+                        catch (ReflectionTypeLoadException ex)
+                        {
+                            // If some types can't be loaded (e.g., missing dependencies), use the successfully loaded ones
+                            return ex.Types.Where(t => t != null)!;
+                        }
+                        catch
+                        {
+                            // Skip assemblies that can't be loaded
+                            return Array.Empty<Type>();
+                        }
+                    })
                     .Where(t => t.IsClass && !t.IsAbstract)
                     .ToList();
 
