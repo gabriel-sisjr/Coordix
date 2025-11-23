@@ -218,7 +218,7 @@ public static class ServiceCollectionExtensions
         // 2. Try to find and call AddCoordixBackground from Coordix.Background package
         // This ensures the user has explicitly installed Coordix.Background
         Type? backgroundExtensionsType = FindBackgroundExtensionsType();
-        
+
         if (backgroundExtensionsType == null)
         {
             throw new InvalidOperationException(
@@ -259,7 +259,7 @@ public static class ServiceCollectionExtensions
         {
             // Search through already loaded assemblies for Coordix.Background
             Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            
+
             foreach (Assembly assembly in assemblies)
             {
                 if (assembly.GetName().Name == "Coordix.Background")
