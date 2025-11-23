@@ -8,6 +8,9 @@ using Coordix.Interfaces;
 using MediatR;
 using MediatRIMediator = MediatR.IMediator;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Wolverine;
+using IMessageBus = Wolverine.IMessageBus;
 
 namespace Coordix.Benchmarks;
 
@@ -16,80 +19,65 @@ namespace Coordix.Benchmarks;
 [RankColumn]
 public class NotificationBenchmark
 {
-    private Coordix.Interfaces.IMediator _reflectionMediator = null!;
-    private Coordix.Interfaces.IMediator _codeGenMediator = null!;
+    private Coordix.Interfaces.IMediator _coordixReflectionMediator = null!;
+    private Coordix.Interfaces.IMediator _coordixCodeGenMediator = null!;
     private MediatRIMediator _mediatRMediator = null!;
-    private TestNotification _notification = null!;
+    private IMessageBus _wolverineReflectionBus = null!;
+    private IMessageBus _wolverineCodeGenBus = null!;
+    private IHost _wolverineReflectionHost = null!;
+    private IHost _wolverineCodeGenHost = null!;
+    private TestNotification _coordixNotification = null!;
     private MediatRTestNotification _mediatRNotification = null!;
+    private WolverineTestNotification _wolverineNotification = null!;
 
     [GlobalSetup]
     public void Setup()
     {
-        // Setup Reflection-based mediator with 10 handlers
-        var reflectionServices = new ServiceCollection();
-        reflectionServices.AddCoordix(options =>
+        // Setup Coordix Reflection-based mediator with 10 handlers
+        var coordixReflectionServices = new ServiceCollection();
+        coordixReflectionServices.AddCoordix(options =>
         {
             options.HandlerResolutionMode = HandlerResolutionMode.Reflection;
         }, typeof(NotificationBenchmark).Assembly);
-        reflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler1>();
-        reflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler2>();
-        reflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler3>();
-        reflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler4>();
-        reflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler5>();
-        reflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler6>();
-        reflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler7>();
-        reflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler8>();
-        reflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler9>();
-        reflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler10>();
-        var reflectionProvider = reflectionServices.BuildServiceProvider();
-        _reflectionMediator = reflectionProvider.GetRequiredService<Coordix.Interfaces.IMediator>();
+        coordixReflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler1>();
+        coordixReflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler2>();
+        coordixReflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler3>();
+        coordixReflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler4>();
+        coordixReflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler5>();
+        coordixReflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler6>();
+        coordixReflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler7>();
+        coordixReflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler8>();
+        coordixReflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler9>();
+        coordixReflectionServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler10>();
+        var coordixReflectionProvider = coordixReflectionServices.BuildServiceProvider();
+        _coordixReflectionMediator = coordixReflectionProvider.GetRequiredService<Coordix.Interfaces.IMediator>();
 
-        // Setup CodeGen-based mediator with 10 handlers
-        var codeGenServices = new ServiceCollection();
-        bool codeGenAvailable = false;
+        // Setup Coordix CodeGen-based mediator with 10 handlers
+        var coordixCodeGenServices = new ServiceCollection();
         try
         {
-            codeGenServices.AddCoordixWithCodeGen(null, typeof(NotificationBenchmark).Assembly);
-            codeGenAvailable = true;
+            coordixCodeGenServices.AddCoordixWithCodeGen(null, typeof(NotificationBenchmark).Assembly);
         }
         catch (InvalidOperationException)
         {
             // CodeGen not available, fallback to Reflection
-            codeGenServices.AddCoordix(options =>
+            coordixCodeGenServices.AddCoordix(options =>
             {
                 options.HandlerResolutionMode = HandlerResolutionMode.Reflection;
             }, typeof(NotificationBenchmark).Assembly);
         }
-        codeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler1>();
-        codeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler2>();
-        codeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler3>();
-        codeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler4>();
-        codeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler5>();
-        codeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler6>();
-        codeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler7>();
-        codeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler8>();
-        codeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler9>();
-        codeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler10>();
-        var codeGenProvider = codeGenServices.BuildServiceProvider();
-        _codeGenMediator = codeGenProvider.GetRequiredService<Coordix.Interfaces.IMediator>();
-        
-        // Verify which executor is actually being used
-        var executor = codeGenProvider.GetRequiredService<Coordix.Interfaces.IHandlerExecutor>();
-        var executorType = executor.GetType().Name;
-        var executorFullName = executor.GetType().FullName;
-        
-        // Log to console (will appear in benchmark output)
-        Console.WriteLine($"[CodeGen Setup] Available: {codeGenAvailable}, Executor Type: {executorType}, Full Name: {executorFullName}");
-        
-        if (!codeGenAvailable || executorType != "GeneratedHandlerExecutor")
-        {
-            Console.WriteLine($"⚠️  WARNING: CodeGen benchmark is using {executorType} instead of GeneratedHandlerExecutor!");
-            Console.WriteLine($"   This means CodeGen is falling back to Reflection mode.");
-        }
-        else
-        {
-            Console.WriteLine($"✅ CodeGen is using GeneratedHandlerExecutor correctly.");
-        }
+        coordixCodeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler1>();
+        coordixCodeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler2>();
+        coordixCodeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler3>();
+        coordixCodeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler4>();
+        coordixCodeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler5>();
+        coordixCodeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler6>();
+        coordixCodeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler7>();
+        coordixCodeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler8>();
+        coordixCodeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler9>();
+        coordixCodeGenServices.AddTransient<Coordix.Interfaces.INotificationHandler<TestNotification>, TestNotificationHandler10>();
+        var coordixCodeGenProvider = coordixCodeGenServices.BuildServiceProvider();
+        _coordixCodeGenMediator = coordixCodeGenProvider.GetRequiredService<Coordix.Interfaces.IMediator>();
 
         // Setup MediatR mediator with 10 handlers
         var mediatRServices = new ServiceCollection();
@@ -107,26 +95,63 @@ public class NotificationBenchmark
         var mediatRProvider = mediatRServices.BuildServiceProvider();
         _mediatRMediator = mediatRProvider.GetRequiredService<MediatRIMediator>();
 
-        _notification = new TestNotification { Message = "Benchmark Notification" };
+        // Setup Wolverine Reflection mode with 10 handlers
+        _wolverineReflectionHost = Host.CreateDefaultBuilder()
+            .UseWolverine(opts =>
+            {
+                opts.Discovery.IncludeAssembly(typeof(NotificationBenchmark).Assembly);
+                // Reflection mode: no code generation (default)
+            })
+            .Build();
+        _wolverineReflectionHost.Start();
+        _wolverineReflectionBus = _wolverineReflectionHost.Services.GetRequiredService<IMessageBus>();
+
+        // Setup Wolverine CodeGen mode with 10 handlers
+        // Note: Wolverine 5.x uses code generation by default when handlers are discovered
+        _wolverineCodeGenHost = Host.CreateDefaultBuilder()
+            .UseWolverine(opts =>
+            {
+                opts.Discovery.IncludeAssembly(typeof(NotificationBenchmark).Assembly);
+                // CodeGen mode: Wolverine generates code automatically
+            })
+            .Build();
+        _wolverineCodeGenHost.Start();
+        _wolverineCodeGenBus = _wolverineCodeGenHost.Services.GetRequiredService<IMessageBus>();
+
+        // Initialize test data (identical for all libraries)
+        _coordixNotification = new TestNotification { Message = "Benchmark Notification" };
         _mediatRNotification = new MediatRTestNotification { Message = "Benchmark Notification" };
+        _wolverineNotification = new WolverineTestNotification { Message = "Benchmark Notification" };
     }
 
     [Benchmark(Description = "Coordix - Reflection Mode (10 handlers)", Baseline = true)]
-    public async Task PublishNotification_Reflection()
+    public async Task PublishNotification_CoordixReflection()
     {
-        await _reflectionMediator.Publish(_notification);
+        await _coordixReflectionMediator.Publish(_coordixNotification);
     }
 
     [Benchmark(Description = "Coordix - CodeGen Mode (10 handlers, Source Generator)")]
-    public async Task PublishNotification_CodeGen()
+    public async Task PublishNotification_CoordixCodeGen()
     {
-        await _codeGenMediator.Publish(_notification);
+        await _coordixCodeGenMediator.Publish(_coordixNotification);
     }
 
     [Benchmark(Description = "MediatR - Reflection Only (10 handlers)")]
     public async Task PublishNotification_MediatR()
     {
         await _mediatRMediator.Publish(_mediatRNotification);
+    }
+
+    [Benchmark(Description = "Wolverine - Reflection Mode (10 handlers)")]
+    public async Task PublishNotification_WolverineReflection()
+    {
+        await _wolverineReflectionBus.PublishAsync(_wolverineNotification);
+    }
+
+    [Benchmark(Description = "Wolverine - CodeGen Mode (10 handlers)")]
+    public async Task PublishNotification_WolverineCodeGen()
+    {
+        await _wolverineCodeGenBus.PublishAsync(_wolverineNotification);
     }
 }
 
