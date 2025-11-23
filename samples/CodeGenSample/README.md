@@ -32,13 +32,18 @@ services.AddCoordix(); // Uses reflection at runtime
 ### CodeGen Approach (CodeGenPreferred Mode)
 
 ```csharp
-services.AddCoordixWithCodeGen(); // Uses source generator
+using Coordix.CodeGen.Extensions;
+
+services.AddCoordixWithCodeGen(); // Uses source generator + includes core services
 ```
 
 - **Build-time**: Roslyn source generator scans your project
 - **Discovers**: All classes implementing `IRequestHandler<,>`, `IRequestHandler<>`, `INotificationHandler<>`
 - **Generates**: `GeneratedHandlerExecutor` class with direct, strongly-typed calls
 - **Runtime**: Zero reflection, pure compiled code
+- **Automatically registers**: All core Coordix services (no need to call `AddCoordix()`)
+
+> **Important**: When using CodeGen, **only** call `AddCoordixWithCodeGen()`. Do not call `AddCoordix()` separately.
 
 ### Generated Code Example
 

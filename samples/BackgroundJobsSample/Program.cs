@@ -3,7 +3,6 @@ using BackgroundJobsSample.Notifications;
 using BackgroundJobsSample.Requests;
 using Coordix.Background.Extensions;
 using Coordix.Background.Interfaces;
-using Coordix.Extensions;
 using Coordix.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,14 +17,12 @@ public class Program
 		Console.WriteLine("🚀 Coordix.Background Sample");
 		Console.WriteLine("============================\n");
 
-		// Create host with Coordix and Coordix.Background
+		// Create host with Coordix.Background (automatically includes core Coordix services)
 		var host = Host.CreateDefaultBuilder(args)
 			.ConfigureServices(services =>
 			{
-				// Add Coordix mediator
-				services.AddCoordix();
-
 				// Add Coordix.Background for fire-and-forget background jobs
+				// This automatically registers core Coordix services (IMediator, IHandlerExecutor, etc.)
 				services.AddCoordixBackground();
 
 				// Register handlers

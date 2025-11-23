@@ -118,9 +118,10 @@ dotnet add package Coordix.CodeGen
 ```
 
 ```csharp
-builder.Services.AddCoordix(options => {
-    options.HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred;
-});
+using Coordix.CodeGen.Extensions;
+
+// Use AddCoordixWithCodeGen for zero-reflection mode
+builder.Services.AddCoordixWithCodeGen();
 ```
 
 | Metric     | Value     | vs Reflection |
@@ -173,7 +174,7 @@ dotnet add package Coordix.Background
 ```
 
 ```csharp
-builder.Services.AddCoordix();
+// AddCoordixBackground automatically includes core Coordix services
 builder.Services.AddCoordixBackground();
 ```
 

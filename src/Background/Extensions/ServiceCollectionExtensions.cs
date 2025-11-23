@@ -2,6 +2,7 @@ using System;
 using System.Threading.Channels;
 using Coordix.Background.Implementation;
 using Coordix.Background.Interfaces;
+using Coordix.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -14,6 +15,8 @@ namespace Coordix.Background.Extensions
     {
         /// <summary>
         /// Adds Coordix.Background services to the service collection.
+        /// This method automatically registers the core Coordix services (IMediator, IHandlerExecutor, etc.)
+        /// so there is no need to call AddCoordix() explicitly.
         /// </summary>
         /// <param name="services">The service collection to add services to.</param>
         /// <returns>The service collection for chaining.</returns>
@@ -23,6 +26,9 @@ namespace Coordix.Background.Extensions
             {
                 throw new ArgumentNullException(nameof(services));
             }
+
+            // Register core Coordix services first
+            Coordix.Extensions.ServiceCollectionExtensions.AddCoordix(services);
 
             // Create an unbounded channel for background jobs
             Channel<BackgroundJob> channel = Channel.CreateUnbounded<BackgroundJob>(new UnboundedChannelOptions

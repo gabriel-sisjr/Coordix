@@ -19,12 +19,18 @@ dotnet add package Coordix.CodeGen
 ## How to Enable
 
 ```csharp
-builder.Services.AddCoordix(options => {
-    options.HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred;
-});
+using Coordix.CodeGen.Extensions;
+
+// Use AddCoordixWithCodeGen instead of AddCoordix
+builder.Services.AddCoordixWithCodeGen();
 ```
 
-**Done.** The source generator detects automatically during build.
+**Done.** This automatically:
+- Registers all core Coordix services (IMediator, IHandlerExecutor, etc.)
+- Configures CodeGenPreferred mode
+- Uses the generated handler executor
+
+> **Important**: Do **not** call `AddCoordix()` when using CodeGen. Use `AddCoordixWithCodeGen()` instead.
 
 ## How It Works
 
@@ -116,6 +122,7 @@ The package includes analyzers that detect problems at **compile-time:**
 builder.Services.AddCoordix(options => {
     options.HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred;
     // ❌ ERROR: CodeGenPreferred configured but Coordix.CodeGen not referenced
+    // Solution: Use AddCoordixWithCodeGen() instead
 });
 ```
 
@@ -187,9 +194,13 @@ If you see "Reflection mode" in log, something went wrong.
 
 ### "Code generated but still using Reflection"
 
-Verify you configured the mode:
+Make sure you're using the correct registration method:
 ```csharp
-options.HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred;
+// ❌ Wrong:
+builder.Services.AddCoordix();
+
+// ✅ Correct:
+builder.Services.AddCoordixWithCodeGen();
 ```
 
 ### "Analyzer not working"
