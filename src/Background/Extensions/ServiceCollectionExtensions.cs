@@ -38,11 +38,9 @@ namespace Coordix.Background.Extensions
 
         /// <summary>
         /// Registers the background worker components (channel, mediator, and hosted service).
-        /// This is internal so it can be used by Coordix.CodeGen package to create
-        /// AddCoordixBackgroundWithCodeGen extension method.
         /// </summary>
         /// <param name="services">The service collection to add services to.</param>
-        internal static void RegisterBackgroundWorker(IServiceCollection services)
+        private static void RegisterBackgroundWorker(IServiceCollection services)
         {
             // Create an unbounded channel for background jobs
             Channel<BackgroundJob> channel = Channel.CreateUnbounded<BackgroundJob>(new UnboundedChannelOptions

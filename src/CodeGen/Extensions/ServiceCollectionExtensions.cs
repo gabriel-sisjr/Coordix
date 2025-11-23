@@ -172,11 +172,12 @@ public static class ServiceCollectionExtensions
     /// <param name="services">The service collection to add services to.</param>
     /// <returns>The service collection for chaining.</returns>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the generated handler executor type is not found.
-    /// This typically means the Coordix.CodeGen source generator hasn't run or the project hasn't been built.
+    /// Thrown when the generated handler executor type is not found, or when
+    /// Coordix.Background package is not installed.
     /// </exception>
     /// <remarks>
     /// This method requires both Coordix.CodeGen and Coordix.Background packages to be installed.
+    /// Install Coordix.Background package explicitly: dotnet add package Coordix.Background
     /// </remarks>
     public static IServiceCollection AddCoordixBackgroundWithCodeGen(this IServiceCollection services)
     {
@@ -195,11 +196,12 @@ public static class ServiceCollectionExtensions
     /// </param>
     /// <returns>The service collection for chaining.</returns>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the generated handler executor type is not found.
-    /// This typically means the Coordix.CodeGen source generator hasn't run or the project hasn't been built.
+    /// Thrown when the generated handler executor type is not found, or when
+    /// Coordix.Background package is not installed.
     /// </exception>
     /// <remarks>
     /// This method requires both Coordix.CodeGen and Coordix.Background packages to be installed.
+    /// Install Coordix.Background package explicitly: dotnet add package Coordix.Background
     /// </remarks>
     public static IServiceCollection AddCoordixBackgroundWithCodeGen(
         this IServiceCollection services,
@@ -213,11 +215,69 @@ public static class ServiceCollectionExtensions
         // 1. Register Coordix with CodeGen mode
         AddCoordixWithCodeGen(services, args);
 
-        // 2. Register background worker components
-        // This calls the internal method from Coordix.Background package
-        Coordix.Background.Extensions.ServiceCollectionExtensions.RegisterBackgroundWorker(services);
+        // 2. Try to find and call AddCoordixBackground from Coordix.Background package
+        // This ensures the user has explicitly installed Coordix.Background
+        Type? backgroundExtensionsType = FindBackgroundExtensionsType();
+        
+        if (backgroundExtensionsType == null)
+        {
+            throw new InvalidOperationException(
+                "Coordix.Background package is required to use AddCoordixBackgroundWithCodeGen(). " +
+                "Install the package with: dotnet add package Coordix.Background");
+        }
+
+        // Call AddCoordixBackground method from Coordix.Background package
+        // This will add only the Background worker components since Core is already registered
+        MethodInfo? addBackgroundMethod = backgroundExtensionsType.GetMethod(
+            "AddCoordixBackground",
+            BindingFlags.Public | BindingFlags.Static,
+            null,
+            new[] { typeof(IServiceCollection) },
+            null);
+
+        if (addBackgroundMethod == null)
+        {
+            throw new InvalidOperationException(
+                "Could not find AddCoordixBackground method in Coordix.Background package. " +
+                "Ensure you have a compatible version of Coordix.Background installed.");
+        }
+
+        // Invoke AddCoordixBackground
+        // Since Core is already registered with TryAdd, this will only add Background components
+        addBackgroundMethod.Invoke(null, new object[] { services });
 
         return services;
+    }
+
+    /// <summary>
+    /// Attempts to find the ServiceCollectionExtensions type from Coordix.Background assembly.
+    /// </summary>
+    /// <returns>The type if found; otherwise, null.</returns>
+    private static Type? FindBackgroundExtensionsType()
+    {
+        try
+        {
+            // Search through already loaded assemblies for Coordix.Background
+            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            
+            foreach (Assembly assembly in assemblies)
+            {
+                if (assembly.GetName().Name == "Coordix.Background")
+                {
+                    Type? type = assembly.GetType("Coordix.Background.Extensions.ServiceCollectionExtensions");
+                    if (type != null)
+                    {
+                        return type;
+                    }
+                }
+            }
+
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
 

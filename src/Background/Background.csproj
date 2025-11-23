@@ -18,14 +18,9 @@
 		<PackageTags>Coordix, Mediator, Background, Jobs, Fire-and-Forget</PackageTags>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<PackageReadmeFile>README-Nuget-Background.md</PackageReadmeFile>
-		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
 	</PropertyGroup>
-
-	<!-- Allow Coordix.CodeGen to access internal members -->
-	<ItemGroup>
-		<InternalsVisibleTo Include="Coordix.CodeGen" />
-	</ItemGroup>
 	<ItemGroup>
 		<None Include="..\..\docs\background\README-Nuget-Background.md">
 			<Pack>True</Pack>

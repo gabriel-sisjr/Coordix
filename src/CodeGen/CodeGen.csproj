@@ -85,10 +85,6 @@
 			<PrivateAssets>none</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 		</ProjectReference>
-		<ProjectReference Include="..\Background\Background.csproj">
-			<PrivateAssets>none</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-		</ProjectReference>
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
 	</ItemGroup>
 
