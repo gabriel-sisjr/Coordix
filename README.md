@@ -158,7 +158,7 @@ dotnet run -c Release
 **Coordix CodeGen vs MediatR:** 1.7-2.2x faster, 29-87% less memory.  
 **Coordix CodeGen vs Wolverine:** 5.2-12.6x faster, 63-73% less memory.
 
-_Note: Wolverine benchmarks use Dynamic mode (reflection-based). True CodeGen mode would require pre-generated code._
+_Note: Wolverine benchmarks were tested using reflection-based mode due to benchmark limitations. Wolverine supports CodeGen, but it requires pre-generated code via `dotnet run -- codegen write`, which is not feasible to run programmatically in automated benchmark environments._
 
 _Tested on .NET 8.0.22, Apple M4, BenchmarkDotNet v0.13.12_
 
