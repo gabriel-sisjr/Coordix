@@ -22,10 +22,8 @@ public class NotificationBenchmark
     private Coordix.Interfaces.IMediator _coordixReflectionMediator = null!;
     private Coordix.Interfaces.IMediator _coordixCodeGenMediator = null!;
     private MediatRIMediator _mediatRMediator = null!;
-    private IMessageBus _wolverineReflectionBus = null!;
-    private IMessageBus _wolverineCodeGenBus = null!;
-    private IHost _wolverineReflectionHost = null!;
-    private IHost _wolverineCodeGenHost = null!;
+    private IMessageBus _wolverineBus = null!;
+    private IHost _wolverineHost = null!;
     private TestNotification _coordixNotification = null!;
     private MediatRTestNotification _mediatRNotification = null!;
     private WolverineTestNotification _wolverineNotification = null!;
@@ -33,7 +31,6 @@ public class NotificationBenchmark
     [GlobalSetup]
     public void Setup()
     {
-        // Setup Coordix Reflection-based mediator with 10 handlers
         var coordixReflectionServices = new ServiceCollection();
         coordixReflectionServices.AddCoordix(options =>
         {
@@ -52,7 +49,6 @@ public class NotificationBenchmark
         var coordixReflectionProvider = coordixReflectionServices.BuildServiceProvider();
         _coordixReflectionMediator = coordixReflectionProvider.GetRequiredService<Coordix.Interfaces.IMediator>();
 
-        // Setup Coordix CodeGen-based mediator with 10 handlers
         var coordixCodeGenServices = new ServiceCollection();
         try
         {
@@ -60,7 +56,6 @@ public class NotificationBenchmark
         }
         catch (InvalidOperationException)
         {
-            // CodeGen not available, fallback to Reflection
             coordixCodeGenServices.AddCoordix(options =>
             {
                 options.HandlerResolutionMode = HandlerResolutionMode.Reflection;
@@ -79,7 +74,6 @@ public class NotificationBenchmark
         var coordixCodeGenProvider = coordixCodeGenServices.BuildServiceProvider();
         _coordixCodeGenMediator = coordixCodeGenProvider.GetRequiredService<Coordix.Interfaces.IMediator>();
 
-        // Setup MediatR mediator with 10 handlers
         var mediatRServices = new ServiceCollection();
         mediatRServices.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(NotificationBenchmark).Assembly));
         mediatRServices.AddTransient<MediatR.INotificationHandler<MediatRTestNotification>, MediatRTestNotificationHandler1>();
@@ -95,30 +89,15 @@ public class NotificationBenchmark
         var mediatRProvider = mediatRServices.BuildServiceProvider();
         _mediatRMediator = mediatRProvider.GetRequiredService<MediatRIMediator>();
 
-        // Setup Wolverine Reflection mode with 10 handlers
-        _wolverineReflectionHost = Host.CreateDefaultBuilder()
+        _wolverineHost = Host.CreateDefaultBuilder()
             .UseWolverine(opts =>
             {
                 opts.Discovery.IncludeAssembly(typeof(NotificationBenchmark).Assembly);
-                // Reflection mode: no code generation (default)
             })
             .Build();
-        _wolverineReflectionHost.Start();
-        _wolverineReflectionBus = _wolverineReflectionHost.Services.GetRequiredService<IMessageBus>();
+        _wolverineHost.Start();
+        _wolverineBus = _wolverineHost.Services.GetRequiredService<IMessageBus>();
 
-        // Setup Wolverine CodeGen mode with 10 handlers
-        // Note: Wolverine 5.x uses code generation by default when handlers are discovered
-        _wolverineCodeGenHost = Host.CreateDefaultBuilder()
-            .UseWolverine(opts =>
-            {
-                opts.Discovery.IncludeAssembly(typeof(NotificationBenchmark).Assembly);
-                // CodeGen mode: Wolverine generates code automatically
-            })
-            .Build();
-        _wolverineCodeGenHost.Start();
-        _wolverineCodeGenBus = _wolverineCodeGenHost.Services.GetRequiredService<IMessageBus>();
-
-        // Initialize test data (identical for all libraries)
         _coordixNotification = new TestNotification { Message = "Benchmark Notification" };
         _mediatRNotification = new MediatRTestNotification { Message = "Benchmark Notification" };
         _wolverineNotification = new WolverineTestNotification { Message = "Benchmark Notification" };
@@ -142,16 +121,10 @@ public class NotificationBenchmark
         await _mediatRMediator.Publish(_mediatRNotification);
     }
 
-    [Benchmark(Description = "Wolverine - Reflection Mode (10 handlers)")]
-    public async Task PublishNotification_WolverineReflection()
+    [Benchmark(Description = "Wolverine (10 handlers)")]
+    public async Task PublishNotification_Wolverine()
     {
-        await _wolverineReflectionBus.PublishAsync(_wolverineNotification);
-    }
-
-    [Benchmark(Description = "Wolverine - CodeGen Mode (10 handlers)")]
-    public async Task PublishNotification_WolverineCodeGen()
-    {
-        await _wolverineCodeGenBus.PublishAsync(_wolverineNotification);
+        await _wolverineBus.PublishAsync(_wolverineNotification);
     }
 }
 
