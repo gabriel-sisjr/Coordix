@@ -28,30 +28,28 @@ dotnet add package Coordix.Background
 
 ## Quick Start
 
-### 1. Install Packages
+### 1. Install Package
 
 ```bash
-dotnet add package Coordix
 dotnet add package Coordix.Background
 ```
+
+> **Note**: The core `Coordix` package is automatically installed as a dependency.
 
 ### 2. Register Services
 
 ```csharp
-using Coordix.Extensions;
 using Coordix.Background.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Register Coordix core (required)
-builder.Services.AddCoordix();
-
-// Register Coordix.Background
+// Register Coordix.Background (automatically registers Coordix core services)
 builder.Services.AddCoordixBackground();
 
-// Register your handlers
-builder.Services.AddScoped<IRequestHandler<SendEmailRequest>, SendEmailHandler>();
+// Your handlers are automatically discovered and registered
 ```
+
+> **Important**: There is **no need** to call `AddCoordix()` explicitly. The `AddCoordixBackground()` method automatically registers all core Coordix services (IMediator, IHandlerExecutor, etc.).
 
 ### 3. Use Background Mediator
 
@@ -139,11 +137,11 @@ await _backgroundMediator.Enqueue(new OrderCreatedNotification
 
 ## Important Notes
 
-- Background jobs use the **same handlers** registered with `AddCoordix()`
+- `AddCoordixBackground()` **automatically registers** all core Coordix services - no need to call `AddCoordix()` explicitly
+- Background jobs use the **same handlers** discovered during assembly scanning
 - Jobs are processed **outside the original request context**
 - Exceptions in one job **don't stop processing** of other jobs
 - Jobs are **in-process only** (lost on application restart)
-- Always register `AddCoordix()` before `AddCoordixBackground()`
 
 ## Documentation
 

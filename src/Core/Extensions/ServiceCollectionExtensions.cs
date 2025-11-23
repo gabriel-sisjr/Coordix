@@ -4,6 +4,7 @@ using System.Reflection;
 using Coordix.Implementation;
 using Coordix.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Coordix.Extensions
 {
@@ -183,7 +184,7 @@ namespace Coordix.Extensions
             Assembly[] assemblies = ResolveAssemblies(args);
 
             // Register CoordixOptions as singleton so it can be injected
-            services.AddSingleton(options);
+            services.TryAddSingleton(options);
 
             // Register HandlerExecutor (registry) based on the selected resolution mode
             // This allows different implementations to be plugged in based on the mode.
@@ -203,7 +204,8 @@ namespace Coordix.Extensions
                     // rather than silent fallback behavior.
                     throw new InvalidOperationException(
                         $"HandlerResolutionMode.{nameof(HandlerResolutionMode.CodeGenPreferred)} requires the Coordix.CodeGen package. " +
-                        $"Install the package and call the CodeGen registration method, or use {nameof(HandlerResolutionMode.Reflection)} mode.");
+                        $"Install the package and call AddCoordixWithCodeGen() instead of AddCoordix(), " +
+                        $"or use {nameof(HandlerResolutionMode.Reflection)} mode.");
 
                 default:
                     throw new ArgumentOutOfRangeException(
@@ -212,7 +214,7 @@ namespace Coordix.Extensions
             }
 
             // Register Mediator - depends on IHandlerExecutor via constructor injection
-            services.AddSingleton<IMediator, Mediator>();
+            services.TryAddSingleton<IMediator, Mediator>();
 
             // Register discovered handlers as transient services
             RegisterHandlers(services, assemblies, typeof(INotificationHandler<>));
@@ -295,7 +297,7 @@ namespace Coordix.Extensions
         {
             // Register reflection-based handler executor - this centralizes all handler execution logic
             // including reflection, caching, and invocation. Registered as singleton to share caches.
-            services.AddSingleton<IHandlerExecutor, HandlerExecutor>();
+            services.TryAddSingleton<IHandlerExecutor, HandlerExecutor>();
         }
 
         /// <summary>

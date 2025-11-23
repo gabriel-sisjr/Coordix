@@ -4,7 +4,7 @@ This sample demonstrates how to use Coordix.Background for fire-and-forget backg
 
 ## Features Demonstrated
 
-1. **Configuration**: How to set up `AddCoordix()` and `AddCoordixBackground()`
+1. **Configuration**: How to set up `AddCoordixBackground()` (automatically includes core services)
 2. **Background Requests**: Enqueue requests to be processed asynchronously
 3. **Background Notifications**: Enqueue notifications that trigger multiple handlers
 4. **Fire-and-Forget**: Jobs are processed in the background without blocking the main thread

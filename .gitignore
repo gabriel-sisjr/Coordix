@@ -411,3 +411,4 @@ COVERAGE_*.md
 CoverageReport/
 TestResults/
 analyze_coverage.py
+coverage/*

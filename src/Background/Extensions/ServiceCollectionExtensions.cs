@@ -2,6 +2,7 @@ using System;
 using System.Threading.Channels;
 using Coordix.Background.Implementation;
 using Coordix.Background.Interfaces;
+using Coordix.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -13,7 +14,9 @@ namespace Coordix.Background.Extensions
     public static class ServiceCollectionExtensions
     {
         /// <summary>
-        /// Adds Coordix.Background services to the service collection.
+        /// Adds Coordix.Background services to the service collection with Reflection mode.
+        /// This method automatically registers the core Coordix services (IMediator, IHandlerExecutor, etc.)
+        /// so there is no need to call AddCoordix() explicitly.
         /// </summary>
         /// <param name="services">The service collection to add services to.</param>
         /// <returns>The service collection for chaining.</returns>
@@ -24,6 +27,21 @@ namespace Coordix.Background.Extensions
                 throw new ArgumentNullException(nameof(services));
             }
 
+            // Register core Coordix services first (Reflection mode)
+            Coordix.Extensions.ServiceCollectionExtensions.AddCoordix(services);
+
+            // Register background worker components
+            RegisterBackgroundWorker(services);
+
+            return services;
+        }
+
+        /// <summary>
+        /// Registers the background worker components (channel, mediator, and hosted service).
+        /// </summary>
+        /// <param name="services">The service collection to add services to.</param>
+        private static void RegisterBackgroundWorker(IServiceCollection services)
+        {
             // Create an unbounded channel for background jobs
             Channel<BackgroundJob> channel = Channel.CreateUnbounded<BackgroundJob>(new UnboundedChannelOptions
             {
@@ -40,8 +58,6 @@ namespace Coordix.Background.Extensions
 
             // Register the background worker as a hosted service
             services.AddHostedService<BackgroundWorker>();
-
-            return services;
         }
     }
 }

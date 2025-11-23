@@ -40,9 +40,11 @@ dotnet add package Coordix.Background
 ```
 
 ```csharp
-builder.Services.AddCoordix();
-builder.Services.AddCoordixBackground(); // Adds IBackgroundMediator
+// AddCoordixBackground automatically registers core Coordix services
+builder.Services.AddCoordixBackground(); // Adds IBackgroundMediator + core services
 ```
+
+> **Note**: There is no need to call `AddCoordix()` explicitly. `AddCoordixBackground()` registers all required core services automatically.
 
 ## Usage
 

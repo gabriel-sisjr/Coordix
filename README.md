@@ -118,9 +118,10 @@ dotnet add package Coordix.CodeGen
 ```
 
 ```csharp
-builder.Services.AddCoordix(options => {
-    options.HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred;
-});
+using Coordix.CodeGen.Extensions;
+
+// Use AddCoordixWithCodeGen for zero-reflection mode
+builder.Services.AddCoordixWithCodeGen();
 ```
 
 | Metric     | Value     | vs Reflection |
@@ -173,7 +174,7 @@ dotnet add package Coordix.Background
 ```
 
 ```csharp
-builder.Services.AddCoordix();
+// AddCoordixBackground automatically includes core Coordix services
 builder.Services.AddCoordixBackground();
 ```
 
@@ -303,6 +304,19 @@ Complete, runnable samples in [`/samples`](./samples):
 - ✅ [Advanced Sample](./samples/AdvancedSample) - Multiple handlers, events, patterns
 - ✅ [Background Jobs Sample](./samples/BackgroundJobsSample) - Fire-and-forget processing
 - ✅ [CodeGen Sample](./samples/CodeGenSample) - Zero-reflection execution
+
+---
+
+## 💖 Sponsor / Support the Project
+
+Coordix is an open-source project maintained in my spare time. Your sponsorship helps ensure:
+
+- 🚀 **Faster feature development** and priority support
+- 🐛 **Active maintenance** and bug fixes
+- 📚 **Better documentation** and examples
+- ⚡ **Performance improvements** and optimizations
+
+**[Sponsor on GitHub](https://github.com/sponsors/gabriel-sisjr)** → Every contribution makes a difference!
 
 ---
 

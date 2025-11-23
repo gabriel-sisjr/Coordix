@@ -335,11 +335,17 @@ public static IServiceCollection AddCoordix(
 
 **Example:**
 ```csharp
+// Reflection mode (default)
+services.AddCoordix();
+
+// Or explicitly configure
 services.AddCoordix(options =>
 {
     options.HandlerResolutionMode = HandlerResolutionMode.Reflection;
 });
 ```
+
+> **Note**: For CodeGen mode, use `AddCoordixWithCodeGen()` from `Coordix.CodeGen.Extensions` instead.
 
 #### AddCoordix(IServiceCollection, Action<CoordixOptions>, params object[])
 
@@ -433,7 +439,13 @@ catch (InvalidOperationException ex)
     Console.WriteLine(ex.Message);
 }
 
-// CodeGen mode without package
+// CodeGen mode - use AddCoordixWithCodeGen instead
+using Coordix.CodeGen.Extensions;
+
+// Correct way to use CodeGen mode
+services.AddCoordixWithCodeGen();
+
+// Wrong way (will throw exception)
 try
 {
     services.AddCoordix(options =>
@@ -443,7 +455,7 @@ try
 }
 catch (InvalidOperationException ex)
 {
-    // Requires Coordix.CodeGen package
+    // Exception: Use AddCoordixWithCodeGen() instead
     Console.WriteLine(ex.Message);
 }
 ```

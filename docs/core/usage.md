@@ -204,13 +204,6 @@ services.AddCoordix(typeof(MyHandler).Assembly);
 
 // Scan by namespace prefix
 services.AddCoordix("MyApp");
-
-// Configure handler resolution mode
-services.AddCoordix(options =>
-{
-    options.HandlerResolutionMode = HandlerResolutionMode.Reflection; // Default
-    // options.HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred; // Requires Coordix.CodeGen package
-});
 ```
 
 ### Manual Registration
@@ -481,22 +474,24 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand>
 
 Coordix supports different modes for handler resolution and execution:
 
+**Reflection Mode (Default):**
 ```csharp
-services.AddCoordix(options =>
-{
-    // Reflection mode (default) - uses reflection with cached delegates
-    options.HandlerResolutionMode = HandlerResolutionMode.Reflection;
-    
-    // CodeGen mode - requires Coordix.CodeGen package
-    // options.HandlerResolutionMode = HandlerResolutionMode.CodeGenPreferred;
-});
+services.AddCoordix(); // Uses Reflection mode by default
+```
+
+**CodeGen Mode (Zero Reflection):**
+```csharp
+using Coordix.CodeGen.Extensions;
+
+// Install: dotnet add package Coordix.CodeGen
+services.AddCoordixWithCodeGen(); // Uses code generation for handler resolution
 ```
 
 **Available Modes:**
-- `Reflection` (default): Uses reflection-based handler resolution with cached delegates for optimal performance
-- `CodeGenPreferred`: Uses code generation for handler resolution (requires `Coordix.CodeGen` package)
+- **Reflection** (default): Uses reflection-based handler resolution with cached delegates for optimal performance
+- **CodeGen** (zero reflection): Uses compile-time code generation for direct method calls (requires `Coordix.CodeGen` package)
 
-> **Note**: `CodeGenPreferred` mode requires the `Coordix.CodeGen` package to be installed. If selected without the package, an `InvalidOperationException` will be thrown with a clear error message.
+> **Important**: When using CodeGen mode, use `AddCoordixWithCodeGen()` instead of `AddCoordix()`. This automatically registers all core services with CodeGen mode enabled.
 
 ## Background Jobs with Coordix.Background
 
@@ -511,12 +506,13 @@ dotnet add package Coordix.Background
 ### Configuration
 
 ```csharp
-using Coordix.Extensions;
 using Coordix.Background.Extensions;
 
-services.AddCoordix();           // Core mediator (required)
-services.AddCoordixBackground(); // Background jobs extension
+// AddCoordixBackground automatically includes core Coordix services
+services.AddCoordixBackground();
 ```
+
+> **Note**: You do **not** need to call `AddCoordix()` when using `AddCoordixBackground()`. The Background extension registers all core services automatically.
 
 ### Enqueueing Background Jobs
 

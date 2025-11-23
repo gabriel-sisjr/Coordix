@@ -443,18 +443,17 @@ When using `Coordix.Background` (separate package), follow these best practices:
 - Time-sensitive operations
 - Operations requiring transaction context
 
-### Registration Order
+### Use AddCoordixBackground Alone
 
-Always register Coordix core before Coordix.Background:
+When using background jobs, only call `AddCoordixBackground()`:
 
 ```csharp
-// ✅ Correct order
-services.AddCoordix();           // Core mediator
-services.AddCoordixBackground(); // Background extension
-
-// ❌ Wrong - Background needs core
+// ✅ Correct - Background automatically includes core
 services.AddCoordixBackground();
+
+// ❌ Wrong - Redundant, AddCoordix is already called internally
 services.AddCoordix();
+services.AddCoordixBackground();
 ```
 
 ### Error Handling in Background Jobs
