@@ -307,6 +307,19 @@ Complete, runnable samples in [`/samples`](./samples):
 
 ---
 
+## 💖 Sponsor / Support the Project
+
+Coordix is an open-source project maintained in my spare time. Your sponsorship helps ensure:
+
+- 🚀 **Faster feature development** and priority support
+- 🐛 **Active maintenance** and bug fixes
+- 📚 **Better documentation** and examples
+- ⚡ **Performance improvements** and optimizations
+
+**[Sponsor on GitHub](https://github.com/sponsors/gabriel-sisjr)** → Every contribution makes a difference!
+
+---
+
 ## 🤝 Contributing
 
 PRs welcome! For major changes, open an issue first.
