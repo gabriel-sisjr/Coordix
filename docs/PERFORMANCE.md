@@ -15,14 +15,13 @@ All benchmarks executed with BenchmarkDotNet on:
 | **Coordix - CodeGen Mode** | 51.84 ns | 0.854 ns | 0.757 ns | 0.29 | 1 | 0.0421 | 352 B | 0.59 |
 | **MediatR** | 89.91 ns | 0.566 ns | 0.442 ns | 0.49 | 2 | 0.0592 | 496 B | 0.83 |
 | **Coordix - Reflection Mode** | 181.72 ns | 0.918 ns | 0.717 ns | 1.00 | 3 | 0.0715 | 600 B | 1.00 |
-| **Wolverine - Reflection Mode** | 270.03 ns | 5.260 ns | 4.663 ns | 1.48 | 4 | 0.1125 | 944 B | 1.57 |
-| **Wolverine - CodeGen Mode** | 277.25 ns | 5.794 ns | 16.531 ns | 1.61 | 4 | 0.1125 | 944 B | 1.57 |
+| **Wolverine** | 270.03 ns | 5.260 ns | 4.663 ns | 1.48 | 4 | 0.1125 | 944 B | 1.57 |
 
 **Conclusion:** 
-- Coordix CodeGen is **3.5x faster** than Reflection mode, **1.7x faster** than MediatR, and **5.3x faster** than Wolverine
+- Coordix CodeGen is **3.5x faster** than Reflection mode, **1.7x faster** than MediatR, and **5.2x faster** than Wolverine
 - Coordix CodeGen allocates **41% less memory** than Reflection, **29% less** than MediatR, and **63% less** than Wolverine
 - MediatR is **1.9x faster** than Coordix Reflection mode and **3.0x faster** than Wolverine
-- Wolverine Reflection and CodeGen modes show similar performance (both slower than Coordix and MediatR)
+- Note: Wolverine benchmarks use Dynamic mode (reflection-based). True CodeGen mode would require pre-generated code via `dotnet run -- codegen write`
 
 **Test Environment:** .NET 8.0.22, Apple M4, macOS 26.1, BenchmarkDotNet v0.13.12
 
@@ -33,14 +32,13 @@ All benchmarks executed with BenchmarkDotNet on:
 | **Coordix - CodeGen Mode** | 245.8 ns | 4.72 ns | 4.85 ns | 0.27 | 1 | 0.0505 | - | - | 424 B | 0.13 |
 | **MediatR** | 546.6 ns | 14.90 ns | 42.51 ns | 0.63 | 2 | 0.3796 | 0.0010 | - | 3,176 B | 1.01 |
 | **Coordix - Reflection Mode** | 914.1 ns | 9.15 ns | 7.14 ns | 1.00 | 3 | 0.3767 | - | - | 3,152 B | 1.00 |
-| **Wolverine - CodeGen Mode** | 3,107.3 ns | 221.05 ns | 641.30 ns | 3.23 | 4 | 0.1221 | - | - | 1,576 B | 0.50 |
-| **Wolverine - Reflection Mode** | 4,374.6 ns | 660.10 ns | 1,784.63 ns | 4.96 | 5 | 0.1869 | 0.0916 | 0.0038 | 1,576 B | 0.50 |
+| **Wolverine** | 3,107.3 ns | 221.05 ns | 641.30 ns | 3.40 | 4 | 0.1221 | - | - | 1,576 B | 0.50 |
 
 **Conclusion:**
-- Coordix CodeGen is **3.7x faster** than Reflection mode, **2.2x faster** than MediatR, and **12.6x faster** than Wolverine CodeGen
+- Coordix CodeGen is **3.7x faster** than Reflection mode, **2.2x faster** than MediatR, and **12.6x faster** than Wolverine
 - Coordix CodeGen allocates **87% less memory** than Reflection/MediatR and **73% less** than Wolverine
-- MediatR is **1.7x faster** than Coordix Reflection mode and **5.7x faster** than Wolverine CodeGen
-- Wolverine shows significantly higher latency for notifications, with CodeGen mode being faster than Reflection mode
+- MediatR is **1.7x faster** than Coordix Reflection mode and **5.7x faster** than Wolverine
+- Note: Wolverine benchmarks use Dynamic mode (reflection-based). True CodeGen mode would require pre-generated code via `dotnet run -- codegen write`
 
 **Test Environment:** .NET 8.0.22, Apple M4, macOS 26.1, BenchmarkDotNet v0.13.12
 
@@ -103,8 +101,7 @@ Head-to-head benchmark results (actual measurements):
 | **Coordix CodeGen** | 51.84 ns | 352 B | **1.00x** (baseline) | **0.29x** (3.5x faster) | **0.58x** (1.7x faster) |
 | **MediatR 12.5.0** | 89.91 ns | 496 B | 1.73x slower | **0.49x** (1.9x faster) | **1.00x** (baseline) |
 | **Coordix Reflection** | 181.72 ns | 600 B | 3.50x slower | 1.00x (baseline) | 2.02x slower |
-| **Wolverine Reflection 5.2.0** | 270.03 ns | 944 B | 5.21x slower | 1.48x slower | 3.00x slower |
-| **Wolverine CodeGen 5.2.0** | 277.25 ns | 944 B | 5.35x slower | 1.52x slower | 3.08x slower |
+| **Wolverine 5.2.0** | 270.03 ns | 944 B | 5.21x slower | 1.48x slower | 3.00x slower |
 
 ### Notifications (10 handlers)
 
@@ -113,15 +110,15 @@ Head-to-head benchmark results (actual measurements):
 | **Coordix CodeGen** | 245.8 ns | 424 B | **1.00x** (baseline) | **0.27x** (3.7x faster) | **0.45x** (2.2x faster) |
 | **MediatR 12.5.0** | 546.6 ns | 3,176 B | 2.22x slower | **0.60x** (1.7x faster) | **1.00x** (baseline) |
 | **Coordix Reflection** | 914.1 ns | 3,152 B | 3.72x slower | 1.00x (baseline) | 1.67x slower |
-| **Wolverine CodeGen 5.2.0** | 3,107.3 ns | 1,576 B | 12.64x slower | 3.40x slower | 5.69x slower |
-| **Wolverine Reflection 5.2.0** | 4,374.6 ns | 1,576 B | 17.80x slower | 4.79x slower | 8.00x slower |
+| **Wolverine 5.2.0** | 3,107.3 ns | 1,576 B | 12.64x slower | 3.40x slower | 5.69x slower |
 
 **Key Findings:**
 - **Coordix CodeGen is fastest** in both scenarios, outperforming all other libraries
 - **MediatR is faster than Coordix Reflection** but slower than CodeGen
-- **Wolverine shows higher latency**, especially for notifications (3-18x slower than Coordix CodeGen)
+- **Wolverine shows higher latency**, especially for notifications (12.6x slower than Coordix CodeGen)
 - **Coordix CodeGen allocates significantly less memory** (87% less than Reflection/MediatR, 73% less than Wolverine for notifications)
 - **Wolverine allocates less memory than MediatR/Coordix Reflection** for notifications, but at the cost of much higher latency
+- **Note:** Wolverine benchmarks use Dynamic mode (reflection-based). True CodeGen mode would require pre-generated code via `dotnet run -- codegen write`
 
 **Test Environment:** .NET 8.0.22, Apple M4, macOS 26.1, BenchmarkDotNet v0.13.12
 
@@ -192,12 +189,12 @@ public class MyBenchmark
 
 | Metric | Coordix Reflection | Coordix CodeGen | MediatR | Wolverine | Winner |
 |---------|-------------------|-----------------|---------|-----------|--------|
-| **Request/Response Latency** | 181.72 ns | 51.84 ns | 89.91 ns | 270-277 ns | **Coordix CodeGen** (3.5x vs Reflection, 1.7x vs MediatR, 5.2x vs Wolverine) |
-| **Notification Latency (10h)** | 914.1 ns | 245.8 ns | 546.6 ns | 3,107-4,375 ns | **Coordix CodeGen** (3.7x vs Reflection, 2.2x vs MediatR, 12.6x vs Wolverine) |
+| **Request/Response Latency** | 181.72 ns | 51.84 ns | 89.91 ns | 270.03 ns | **Coordix CodeGen** (3.5x vs Reflection, 1.7x vs MediatR, 5.2x vs Wolverine) |
+| **Notification Latency (10h)** | 914.1 ns | 245.8 ns | 546.6 ns | 3,107.3 ns | **Coordix CodeGen** (3.7x vs Reflection, 2.2x vs MediatR, 12.6x vs Wolverine) |
 | **Request/Response Memory** | 600 B | 352 B | 496 B | 944 B | **Coordix CodeGen** (41% less than Reflection, 29% less than MediatR, 63% less than Wolverine) |
 | **Notification Memory (10h)** | 3,152 B | 424 B | 3,176 B | 1,576 B | **Coordix CodeGen** (87% less than Reflection/MediatR, 73% less than Wolverine) |
-| **Throughput (Request/Response)** | 5.50M ops/s | 19.29M ops/s | 11.12M ops/s | 3.61-3.70M ops/s | **Coordix CodeGen** (3.5x vs Reflection, 1.7x vs MediatR, 5.2x vs Wolverine) |
-| **Throughput (Notifications)** | 1.09M ops/s | 4.07M ops/s | 1.83M ops/s | 0.23-0.32M ops/s | **Coordix CodeGen** (3.7x vs Reflection, 2.2x vs MediatR, 12.6x vs Wolverine) |
+| **Throughput (Request/Response)** | 5.50M ops/s | 19.29M ops/s | 11.12M ops/s | 3.70M ops/s | **Coordix CodeGen** (3.5x vs Reflection, 1.7x vs MediatR, 5.2x vs Wolverine) |
+| **Throughput (Notifications)** | 1.09M ops/s | 4.07M ops/s | 1.83M ops/s | 0.32M ops/s | **Coordix CodeGen** (3.7x vs Reflection, 2.2x vs MediatR, 12.6x vs Wolverine) |
 | **Startup** | ~15ms (first call) | ~50ns | ~15ms (first call) | ~15ms (first call) | **Coordix CodeGen** (instant) |
 | **Simplicity** | Simple | +1 package | Simple | Complex | **Reflection/MediatR** |
 
@@ -206,3 +203,5 @@ public class MyBenchmark
 **Coordix CodeGen is 1.7-2.2x faster than MediatR and 5.2-12.6x faster than Wolverine, with 29-87% less memory allocation.**
 
 Show this benchmark. Numbers don't lie.
+
+**Note on Wolverine:** Benchmarks use Dynamic mode (reflection-based). True CodeGen mode would require pre-generated code via `dotnet run -- codegen write`, which is not practical for automated benchmarks.
