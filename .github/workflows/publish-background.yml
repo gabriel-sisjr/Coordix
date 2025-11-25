@@ -1,0 +1,137 @@
+name: Publish Coordix.Background
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_suffix:
+        description: 'Version suffix (e.g., rc, beta, alpha). Leave empty for production release.'
+        required: false
+        type: string
+        default: ''
+      branch:
+        description: 'Branch to publish from'
+        required: true
+        type: choice
+        options:
+          - develop
+          - main
+        default: develop
+
+jobs:
+  publish:
+    name: Publish Coordix.Background
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Read version from project file
+        id: read_version
+        run: |
+          VERSION=$(grep '<Version>' src/Background/Background.csproj | sed -n 's/.*<Version>\([^<]*\)<\/Version>.*/\1/p')
+          echo "base_version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Base version: $VERSION"
+
+      - name: Determine package version
+        id: package_version
+        run: |
+          BASE_VERSION="${{ steps.read_version.outputs.base_version }}"
+          SUFFIX="${{ github.event.inputs.version_suffix }}"
+          BRANCH="${{ github.event.inputs.branch }}"
+          EVENT_NAME="${{ github.event_name }}"
+
+          # Workflow dispatch em develop com sufixo
+          if [ "$EVENT_NAME" == "workflow_dispatch" ] && [ "$BRANCH" == "develop" ] && [ -n "$SUFFIX" ] && [ "$SUFFIX" != "" ]; then
+            PACKAGE_VERSION="$BASE_VERSION-$SUFFIX"
+            echo "Pre-release with suffix: $PACKAGE_VERSION"
+            echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+          # Workflow dispatch em develop sem sufixo = rc padrão
+          elif [ "$EVENT_NAME" == "workflow_dispatch" ] && [ "$BRANCH" == "develop" ]; then
+            PACKAGE_VERSION="$BASE_VERSION-rc"
+            echo "Pre-release default (rc): $PACKAGE_VERSION"
+            echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+          # Workflow dispatch em main = produção
+          elif [ "$EVENT_NAME" == "workflow_dispatch" ] && [ "$BRANCH" == "main" ]; then
+            if [ -n "$SUFFIX" ] && [ "$SUFFIX" != "" ]; then
+              PACKAGE_VERSION="$BASE_VERSION-$SUFFIX"
+              echo "Production with suffix: $PACKAGE_VERSION"
+            else
+              PACKAGE_VERSION="$BASE_VERSION"
+              echo "Production release: $PACKAGE_VERSION"
+            fi
+            echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+          else
+            echo "Unknown event/branch combination"
+            echo "should_publish=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          echo "Final package version: $PACKAGE_VERSION"
+
+      - name: Update version in project file
+        if: steps.package_version.outputs.should_publish == 'true'
+        run: |
+          PACKAGE_VERSION="${{ steps.package_version.outputs.package_version }}"
+          sed -i "s|<Version>.*</Version>|<Version>$PACKAGE_VERSION</Version>|" src/Background/Background.csproj
+          echo "Updated version to: $PACKAGE_VERSION"
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Pack Coordix.Background
+        if: steps.package_version.outputs.should_publish == 'true'
+        run: |
+          dotnet pack src/Background/Background.csproj --configuration Release --no-build --output ./artifacts
+          echo "✅ Coordix.Background packed"
+
+      - name: List packed artifacts
+        if: steps.package_version.outputs.should_publish == 'true'
+        run: |
+          echo "📦 Packed artifacts:"
+          ls -lh ./artifacts/*.nupkg
+
+      - name: Publish to NuGet
+        if: steps.package_version.outputs.should_publish == 'true'
+        run: |
+          dotnet nuget push ./artifacts/*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+      - name: Upload artifacts
+        if: steps.package_version.outputs.should_publish == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-package-background
+          path: ./artifacts/*.nupkg
+          retention-days: 30

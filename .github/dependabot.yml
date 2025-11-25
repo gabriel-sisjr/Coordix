@@ -1,0 +1,59 @@
+version: 2
+updates:
+  - package-ecosystem: 'nuget'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    # Group all NuGet updates into a single PR
+    open-pull-requests-limit: 1
+    groups:
+      nuget-dependencies:
+        patterns:
+          - '*'
+        update-types:
+          - 'minor'
+          - 'patch'
+    labels:
+      - 'dependencies'
+      - 'nuget'
+    # Ignore major version updates that may break compatibility
+    ignore:
+      # Microsoft.Extensions.DependencyInjection: Keep at 2.1.1 for .NET Standard 2.1 compatibility
+      - dependency-name: 'Microsoft.Extensions.DependencyInjection'
+        update-types: ['version-update:semver-major']
+      # xunit: Major updates may have breaking changes
+      - dependency-name: 'xunit'
+        update-types: ['version-update:semver-major']
+      # xunit.runner.visualstudio: Major updates may have breaking changes
+      - dependency-name: 'xunit.runner.visualstudio'
+        update-types: ['version-update:semver-major']
+      # Microsoft.NET.Test.Sdk: Major updates may have breaking changes
+      - dependency-name: 'Microsoft.NET.Test.Sdk'
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    # Group all npm updates into a single PR
+    open-pull-requests-limit: 1
+    groups:
+      npm-dependencies:
+        patterns:
+          - '*'
+        update-types:
+          - 'minor'
+          - 'patch'
+    labels:
+      - 'dependencies'
+      - 'npm'
+    # Ignore major version updates for npm packages
+    ignore:
+      - dependency-name: '@commitlint/cli'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@commitlint/config-conventional'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'husky'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'prettier'
+        update-types: ['version-update:semver-major']

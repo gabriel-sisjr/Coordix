@@ -1,0 +1,11 @@
+echo "🔍 Running pre-commit checks..."
+
+# Format and check JavaScript/TypeScript files
+echo "📝 Formatting JavaScript/TypeScript files..."
+yarn prettier --write .
+
+# Format .NET code (auto-fix, don't block)
+echo "🔧 Formatting .NET code..."
+dotnet format --no-restore --verbosity quiet || true
+
+echo "✅ Pre-commit checks complete!"

@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.1</TargetFrameworks>
+		<Nullable>enable</Nullable>
+		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+		<AssemblyName>Coordix.Background</AssemblyName>
+		<RootNamespace>Coordix.Background</RootNamespace>
+		<PackageId>Coordix.Background</PackageId>
+		<Authors>Gabriel Santana</Authors>
+		<Description>Background job processing extension for Coordix mediator - fire-and-forget in-process background jobs. Requires Coordix package.</Description>
+		<PackageDescription>Background job processing extension for Coordix mediator. This package extends Coordix core with fire-and-forget in-process background job capabilities. Requires Coordix package to be installed.</PackageDescription>
+		<PackageProjectUrl>https://github.com/gabriel-sisjr/Coordix</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/gabriel-sisjr/Coordix</RepositoryUrl>
+		<RepositoryType>Public</RepositoryType>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<Version>0.2.0</Version>
+		<Title>Coordix.Background</Title>
+		<PackageTags>Coordix, Mediator, Background, Jobs, Fire-and-Forget</PackageTags>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<PackageReadmeFile>README-Nuget-Background.md</PackageReadmeFile>
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include="..\..\docs\background\README-Nuget-Background.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Core\Core.csproj">
+			<!-- When packing, this will be converted to a PackageReference to Coordix -->
+			<PrivateAssets>none</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+		</ProjectReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.1.1" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="2.1.1" />
+		<PackageReference Include="System.Threading.Channels" Version="4.7.1" />
+	</ItemGroup>
+</Project>

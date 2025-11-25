@@ -1,0 +1,22 @@
+{
+  "name": "coordix",
+  "version": "0.1.0",
+  "description": "A lightweight and straightforward mediator implementation for .NET applications with minimal setup",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "format:dotnet": "dotnet format",
+    "format:dotnet:check": "dotnet format --verify-no-changes"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.0.0",
+    "@commitlint/config-conventional": "^19.0.0",
+    "husky": "^9.0.0",
+    "prettier": "^3.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -56,6 +56,8 @@ dlldata.c
 
 # Benchmark Results
 BenchmarkDotNet.Artifacts/
+BenchmarkResults/
+**/BenchmarkResults/
 
 # .NET Core
 project.lock.json
@@ -286,6 +288,8 @@ FakesAssemblies/
 # Node.js Tools for Visual Studio
 .ntvs_analysis.dat
 node_modules/
+package-lock.json
+.pnpm-debug.log
 
 # Visual Studio 6 build log
 *.plg
@@ -398,3 +402,13 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+.idea/
+.DS_Store
+
+# Temporary files and reports
+PR_DESCRIPTION.md
+COVERAGE_*.md
+CoverageReport/
+TestResults/
+analyze_coverage.py
+coverage/*
