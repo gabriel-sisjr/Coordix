@@ -43,7 +43,7 @@ public class RequestResponseBenchmark
         var coordixCodeGenServices = new ServiceCollection();
         try
         {
-            coordixCodeGenServices.AddCoordixWithCodeGen(null, typeof(RequestResponseBenchmark).Assembly);
+            coordixCodeGenServices.AddCoordixWithCodeGen(typeof(RequestResponseBenchmark).Assembly);
         }
         catch (InvalidOperationException)
         {
