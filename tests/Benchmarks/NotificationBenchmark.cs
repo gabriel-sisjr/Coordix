@@ -52,7 +52,7 @@ public class NotificationBenchmark
         var coordixCodeGenServices = new ServiceCollection();
         try
         {
-            coordixCodeGenServices.AddCoordixWithCodeGen(null, typeof(NotificationBenchmark).Assembly);
+            coordixCodeGenServices.AddCoordixWithCodeGen(typeof(NotificationBenchmark).Assembly);
         }
         catch (InvalidOperationException)
         {
