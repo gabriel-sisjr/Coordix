@@ -84,12 +84,17 @@
 	</ItemGroup>
 
 	<!-- Core dependency (only for netstandard2.1 - runtime extensions) -->
-	<!-- When packing, this will be converted to a PackageReference to Coordix -->
+	<!-- ProjectReference for local development -->
 	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
-		<ProjectReference Include="..\Core\Core.csproj">
+		<ProjectReference Include="..\Core\Core.csproj" Condition="Exists('..\Core\Core.csproj')">
 			<PrivateAssets>none</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 		</ProjectReference>
+	</ItemGroup>
+
+	<!-- PackageReference for NuGet package dependency - will be included in .nuspec during pack -->
+	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+		<PackageReference Include="Coordix" Version="0.2.0" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
 	</ItemGroup>
 

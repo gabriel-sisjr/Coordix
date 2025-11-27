@@ -28,12 +28,17 @@
 		</None>
 	</ItemGroup>
 
+	<!-- ProjectReference for local development -->
 	<ItemGroup>
-		<ProjectReference Include="..\Core\Core.csproj">
-			<!-- When packing, this will be converted to a PackageReference to Coordix -->
+		<ProjectReference Include="..\Core\Core.csproj" Condition="Exists('..\Core\Core.csproj')">
 			<PrivateAssets>none</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 		</ProjectReference>
+	</ItemGroup>
+
+	<!-- PackageReference for NuGet package dependency - will be included in .nuspec during pack -->
+	<ItemGroup>
+		<PackageReference Include="Coordix" Version="0.2.0" />
 	</ItemGroup>
 
 	<ItemGroup>
