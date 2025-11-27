@@ -272,7 +272,7 @@ public class CoordixSourceGenerator : IIncrementalGenerator
                 sb.AppendLine("\t\t\t{");
                 sb.AppendLine(
                     $"\t\t\t\tvar handler = _provider.GetRequiredService<Coordix.Interfaces.IRequestHandler<{handler.RequestOrNotificationType}, {handler.ResponseType}>>();");
-                sb.AppendLine($"\t\t\t\tvar typedRequest = ({handler.RequestOrNotificationType})request;");
+                sb.AppendLine($"\t\t\t\tvar typedRequest = ({handler.RequestOrNotificationType})(object)request;");
                 sb.AppendLine($"\t\t\t\tvar result = await handler.Handle(typedRequest, cancellationToken);");
                 sb.AppendLine($"\t\t\t\treturn (TResponse)(object)result!;");
                 sb.AppendLine("\t\t\t}");
@@ -280,11 +280,13 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 
             sb.AppendLine("\t\t\telse");
             sb.AppendLine("\t\t\t{");
+            sb.AppendLine("\t\t\t\tawait Task.CompletedTask;");
             sb.AppendLine("\t\t\t\tthrow new InvalidOperationException($\"Handler not found for {requestType.Name}\");");
             sb.AppendLine("\t\t\t}");
         }
         else
         {
+            sb.AppendLine("\t\t\tawait Task.CompletedTask;");
             sb.AppendLine("\t\t\tthrow new InvalidOperationException($\"Handler not found for {requestType.Name}\");");
         }
 
@@ -321,7 +323,7 @@ public class CoordixSourceGenerator : IIncrementalGenerator
                 sb.AppendLine("\t\t\t{");
                 sb.AppendLine(
                     $"\t\t\t\tvar handler = _provider.GetRequiredService<Coordix.Interfaces.IRequestHandler<{handler.RequestOrNotificationType}>>();");
-                sb.AppendLine($"\t\t\t\tvar typedRequest = ({handler.RequestOrNotificationType})request;");
+                sb.AppendLine($"\t\t\t\tvar typedRequest = ({handler.RequestOrNotificationType})(object)request;");
                 sb.AppendLine($"\t\t\t\tawait handler.Handle(typedRequest, cancellationToken);");
                 sb.AppendLine("\t\t\t\treturn;");
                 sb.AppendLine("\t\t\t}");
@@ -329,11 +331,13 @@ public class CoordixSourceGenerator : IIncrementalGenerator
 
             sb.AppendLine("\t\t\telse");
             sb.AppendLine("\t\t\t{");
+            sb.AppendLine("\t\t\t\tawait Task.CompletedTask;");
             sb.AppendLine("\t\t\t\tthrow new InvalidOperationException($\"Handler not found for {requestType.Name}\");");
             sb.AppendLine("\t\t\t}");
         }
         else
         {
+            sb.AppendLine("\t\t\tawait Task.CompletedTask;");
             sb.AppendLine("\t\t\tthrow new InvalidOperationException($\"Handler not found for {requestType.Name}\");");
         }
 
@@ -391,12 +395,14 @@ public class CoordixSourceGenerator : IIncrementalGenerator
             sb.AppendLine("\t\t\telse");
             sb.AppendLine("\t\t\t{");
             sb.AppendLine("\t\t\t\t// No handlers registered for this notification type - this is valid");
+            sb.AppendLine("\t\t\t\tawait Task.CompletedTask;");
             sb.AppendLine("\t\t\t\treturn;");
             sb.AppendLine("\t\t\t}");
         }
         else
         {
             sb.AppendLine("\t\t\t// No notification handlers discovered - this is valid");
+            sb.AppendLine("\t\t\tawait Task.CompletedTask;");
             sb.AppendLine("\t\t\treturn;");
         }
 
