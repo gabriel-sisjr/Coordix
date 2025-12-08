@@ -79,8 +79,8 @@
 
 	<!-- Roslyn dependencies (for both targets, but PrivateAssets for packaging) -->
 	<ItemGroup>
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.0" PrivateAssets="all" />
-		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
 	</ItemGroup>
 
 	<!-- Core dependency (only for netstandard2.1 - runtime extensions) -->
